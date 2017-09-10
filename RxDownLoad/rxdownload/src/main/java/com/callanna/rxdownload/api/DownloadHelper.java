@@ -44,7 +44,9 @@ import static com.callanna.rxdownload.Utils.log;
 import static com.callanna.rxdownload.Utils.mkdirs;
 import static com.callanna.rxdownload.db.DownLoadStatus.COMPLETED;
 import static com.callanna.rxdownload.db.DownLoadStatus.FAILED;
+import static com.callanna.rxdownload.db.DownLoadStatus.NORMAL;
 import static com.callanna.rxdownload.db.DownLoadStatus.PAUSED;
+import static com.callanna.rxdownload.db.DownLoadStatus.PREPAREING;
 import static com.callanna.rxdownload.db.DownLoadStatus.STARTED;
 import static com.callanna.rxdownload.db.DownLoadStatus.WAITING;
 import static java.io.File.separator;
@@ -57,16 +59,16 @@ import static java.io.File.separator;
  */
 public class DownloadHelper {
     public static final String TEST_RANGE_SUPPORT = "bytes=0-";
-    private static final CharSequence CACHE = ".cache";
+    private static final CharSequence CACHE = "cache";
     public static final String TMP_SUFFIX = ".tmp";  //temp file
     public static final String LMF_SUFFIX = ".lmf";  //last modify file
     private int maxRetryCount = 3;
     private int maxThreads = 3;
 
-    private String defaultSavePath= "";
-    private String filePath= "";
-    private String tempPath= "";
-    private String lmfPath= "";
+    private String defaultSavePath = "";
+    private String filePath = "";
+    private String tempPath = "";
+    private String lmfPath = "";
     private String cachePath = "";
 
     private long contentLength;
@@ -85,7 +87,7 @@ public class DownloadHelper {
         dbManager = DBManager.getSingleton(context.getApplicationContext());
         fileHelper = new FileHelper(maxThreads);
 
-         cachePath = TextUtils.concat(defaultSavePath, separator, CACHE).toString();
+        cachePath = TextUtils.concat(defaultSavePath, separator, CACHE).toString();
         mkdirs(defaultSavePath, cachePath);
 
 
@@ -185,13 +187,7 @@ public class DownloadHelper {
      * @return response
      */
     public Publisher<DownLoadStatus> download(DownLoadBean bean) throws InterruptedException {
-        String name = bean.getSaveName();
-        String path = bean.getSavePath();
-        Log.d("duanyl", "download:getSaveName  "+name);
-        Log.d("duanyl", "download:getSavePath  "+path+"," +bean.getIsSupportRange());
-        filePath = bean.getSavePath() +"/"+bean.getSaveName();
-        tempPath = cachePath+ File.separator+name+TMP_SUFFIX;
-        lmfPath =  cachePath+separator+name+LMF_SUFFIX ;
+
         if (bean.getIsSupportRange()) {
             List<Publisher<DownLoadStatus>> tasks = new ArrayList<>();
             for (int i = 0; i < maxThreads; i++) {
@@ -244,16 +240,17 @@ public class DownloadHelper {
                     public Publisher<Response<ResponseBody>> apply(DownloadRange range)
                             throws Exception {
                         String rangeStr = "bytes=" + range.start + "-" + range.end;
+                        log("rangeDownload--->" + rangeStr);
                         return downloadApi.download(rangeStr, url);
                     }
                 })
-                .subscribeOn(Schedulers.io())  //Important!
                 .flatMap(new Function<Response<ResponseBody>, Publisher<DownLoadStatus>>() {
                     @Override
                     public Publisher<DownLoadStatus> apply(Response<ResponseBody> response) throws Exception {
                         return save(index, response.body());
                     }
-                });
+                })
+                .subscribeOn(Schedulers.io());  //Important!;
     }
 
     /**
@@ -326,7 +323,7 @@ public class DownloadHelper {
     }
 
     public File file() {
-        return new File(filePath );
+        return new File(filePath);
     }
 
     public File tempFile() {
@@ -384,44 +381,56 @@ public class DownloadHelper {
     }
 
     public Flowable<DownLoadBean> prepare(final String url) {
-      Flowable flowable = Flowable.create(new FlowableOnSubscribe<DownLoadBean>() {
-          @Override
-          public void subscribe(@NonNull final FlowableEmitter<DownLoadBean> e) throws Exception {
-              Observable.just(1).flatMap(new Function<Integer, ObservableSource<DownLoadBean>>() {
-                  @Override
-                  public ObservableSource<DownLoadBean> apply(@NonNull Integer integer) throws Exception {
-                      DownLoadBean downLoadBean = dbManager.searchByUrl(url);
-                      if(downLoadBean.getSaveName() == null || downLoadBean.getSaveName().equals("")){
-                          return checkRange(downLoadBean);
-                      }else {
-                          return checkFile(downLoadBean, downLoadBean.getLastModify());
-                      }
-                  }
-              }).subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.newThread())
-                .subscribe(new Consumer<DownLoadBean>() {
-                  @Override
-                  public void accept(@NonNull DownLoadBean bean) throws Exception {
-                      Log.d("duanyl", "accept: prepare");
-                      e.onNext(bean);
-                      e.onComplete();
-                  }
-              });
+        Flowable flowable = Flowable.create(new FlowableOnSubscribe<DownLoadBean>() {
+            @Override
+            public void subscribe(@NonNull final FlowableEmitter<DownLoadBean> e) throws Exception {
+                Observable.just(1).flatMap(new Function<Integer, ObservableSource<DownLoadBean>>() {
+                    @Override
+                    public ObservableSource<DownLoadBean> apply(@NonNull Integer integer) throws Exception {
+                        DownLoadBean downLoadBean = dbManager.searchByUrl(url);
+                        if (downLoadBean.getSaveName() == null || downLoadBean.getSaveName().equals("")) {
+                            return checkRange(downLoadBean);
+                        } else {
+                            return checkFile(downLoadBean, downLoadBean.getLastModify());
+                        }
+                    }
+                }).subscribeOn(Schedulers.io())
+                        .observeOn(Schedulers.newThread())
+                        .subscribe(new Consumer<DownLoadBean>() {
+                            @Override
+                            public void accept(@NonNull DownLoadBean bean) throws Exception {
+                                Log.d("duanyl", "accept: prepare");
+                                e.onNext(bean);
+                                e.onComplete();
+                            }
+                        });
 
-          }
-      },BackpressureStrategy.ERROR);
-        return flowable ;
+            }
+        }, BackpressureStrategy.ERROR);
+        return flowable;
     }
 
-    public Observable<DownLoadStatus> startDownLoad(final DownLoadBean bean) {
+    public ObservableSource<DownLoadStatus> startDownLoad(final DownLoadBean bean) {
         Log.d("duanyl", "startDownLoad: ");
-        return Flowable.just(1).throttleFirst(500,TimeUnit.MILLISECONDS)
-                .takeLast(1)
+        return Flowable.just(1)
                 .flatMap(new Function<Integer, Publisher<DownLoadStatus>>() {
-                @Override
-                public Publisher<DownLoadStatus> apply(@NonNull Integer integer) throws Exception {
-                      return download(bean);
-                   }
+                    @Override
+                    public Publisher<DownLoadStatus> apply(@NonNull Integer integer) throws Exception {
+                        return prepareDownLoad(bean);
+                    }
+                })
+                .map(new Function<DownLoadStatus, DownLoadStatus>() {
+                    @Override
+                    public DownLoadStatus apply(@NonNull DownLoadStatus downLoadStatus) throws Exception {
+                        dbManager.updateStatusByUrl(bean.getUrl(), downLoadStatus);
+                        return downLoadStatus;
+                    }
+                })
+                .flatMap(new Function<DownLoadStatus, Publisher<DownLoadStatus>>() {
+                    @Override
+                    public Publisher<DownLoadStatus> apply(@NonNull DownLoadStatus downLoadStatus) throws Exception {
+                        return download(bean);
+                    }
                 })
                 .subscribeOn(Schedulers.io())
                 .map(new Function<DownLoadStatus, DownLoadStatus>() {
@@ -439,29 +448,34 @@ public class DownloadHelper {
                         dbManager.updateStatusByUrl(bean.getUrl(), DownLoadStatus.FAILED);
                     }
                 })
-                .doOnComplete(new Action() {
-                    @Override
-                    public void run() throws Exception {
-                        log("complete");
-                        dbManager.updateStatusByUrl(bean.getUrl(), DownLoadStatus.COMPLETED);
-                    }
-                })
-
-                .doOnCancel(new Action() {
-                    @Override
-                    public void run() throws Exception {
-                        log("cancel");
-                        dbManager.updateStatusByUrl(bean.getUrl(), DownLoadStatus.CANCELED);
-                    }
-                })
-                .doFinally(new Action() {
-                    @Override
-                    public void run() throws Exception {
-                        log("finish");
-                        dbManager.updateStatusByUrl(bean.getUrl(), DownLoadStatus.COMPLETED);
-                    }
-                })
                 .toObservable();
+    }
+
+    private Publisher<DownLoadStatus> prepareDownLoad(DownLoadBean bean) {
+        String name = bean.getSaveName();
+        String path = bean.getSavePath();
+        Log.d("duanyl", "download:getSaveName  " + name);
+        Log.d("duanyl", "download:getSavePath  " + path + "," + bean.getIsSupportRange());
+        filePath = path+ "/" + name;
+        tempPath = cachePath + File.separator + bean.getFileName()+ TMP_SUFFIX;
+        lmfPath = cachePath + separator + bean.getFileName() + LMF_SUFFIX;
+        log("dunayl========>tempPath "+tempPath);
+        contentLength = bean.getStatus().getTotalSize();
+        if(bean.getStatus().getStatus()==PREPAREING) {
+            try {
+                if (bean.getIsSupportRange()) {
+                    prepareRangeDownload();
+                } else {
+                    prepareNormalDownload();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+        bean.getStatus().setStatus(WAITING);
+        return Flowable.just(bean.getStatus());
     }
 
 
@@ -472,7 +486,7 @@ public class DownloadHelper {
                 .flatMap(new Function<Response<ResponseBody>, ObservableSource<DownLoadBean>>() {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull Response<ResponseBody> voidResponse) throws Exception {
-                        Log.d("duanyl", "apply: 1 checkUrl "+voidResponse.isSuccessful());
+                        Log.d("duanyl", "apply: 1 checkUrl " + voidResponse.isSuccessful());
                         DownLoadBean bean = new DownLoadBean(url);
                         if (!voidResponse.isSuccessful()) {
                             return checkRange(bean);
@@ -492,32 +506,32 @@ public class DownloadHelper {
      * @return empty Observable
      */
     private ObservableSource<DownLoadBean> checkRange(final DownLoadBean bean) {
-        Log.d("duanyl", "checkRange: " +bean.getUrl());
+        Log.d("duanyl", "checkRange: " + bean.getUrl());
         return downloadApi.checkRangeByHead(TEST_RANGE_SUPPORT, bean.getUrl())
                 .flatMap(new Function<Response<Void>, ObservableSource<DownLoadBean>>() {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull Response<Void> response) throws Exception {
-                        Log.d("duanyl", "checkRange accept: "+ response.isSuccessful());
-                        if(response.isSuccessful()) {
-                            saveFileInfo(bean, response, WAITING);
+                        Log.d("duanyl", "checkRange accept: " + response.isSuccessful());
+                        if (response.isSuccessful()) {
+                            saveFileInfo(bean, response, PREPAREING);
                             bean.setIsSupportRange(!Utils.notSupportRange(response));
+                            Log.d("duanyl", "checkRange accept: " + bean.getIsSupportRange());
+                            if (dbManager != null) {
+                                dbManager.add(bean);
+                            }
+                            Log.d("duanyl", "checkRange apply: "+bean.getStatus().getStringStatus());
                         }
-                        Log.d("duanyl", "checkRange accept: "+bean.getIsSupportRange());
-                        bean.setStatus(new DownLoadStatus(DownLoadStatus.WAITING));
-                        if(dbManager!= null) {
-                            dbManager.add(bean);
-                        }
-                        Log.d("duanyl", "checkRange apply: ");
                         return Observable.just(bean);
                     }
                 }).doOnError(new Consumer<Throwable>() {
                     @Override
                     public void accept(@NonNull Throwable throwable) throws Exception {
-                        Log.d("duanyl", "checkRange accept: "+throwable.getMessage());
+                        Log.d("duanyl", "checkRange accept: " + throwable.getMessage());
                         throwable.printStackTrace();
                     }
-                }) ;
+                });
     }
+
     /**
      * http checkRangeByHead request,checkRange need info, check whether if server file has changed.
      *
@@ -526,42 +540,40 @@ public class DownloadHelper {
     private ObservableSource<DownLoadBean> checkFile(final DownLoadBean bean, final String lastModify) {
         Log.d("duanyl", "checkFile: ");
         return downloadApi.checkFileByHead(lastModify, bean.getUrl())
-                .doOnNext(new Consumer<Response<Void>>() {
+                .flatMap(new Function<Response<Void>, ObservableSource<DownLoadBean>>() {
                     @Override
-                    public void accept(Response<Void> response) throws Exception {
-                        Log.d("duanyl", "accept: checkFile"+response.code());
-                        if (response.code() == 304) {
-                            delete(bean);
+                    public ObservableSource<DownLoadBean> apply(@NonNull Response<Void> response) throws Exception {
+                        Log.d("duanyl", "accept: checkFile" + response.code());
+                        if (response.code() == 200) {
+                            //如果时间一致，那么返回HTTP状态码304,如果 改变了 返回200
+                            delete(bean.getUrl());
+                            return checkRange(bean);
                         }else{
-                            dbManager.update(bean);
+                            return Observable.just(bean);
                         }
                     }
                 })
-                .flatMap(new Function<Response<Void>, ObservableSource<DownLoadBean>>() {
-                    @Override
-                    public ObservableSource<DownLoadBean> apply(@NonNull Response<Void> voidResponse) throws Exception {
-                        checkRange(bean);
-                        return Observable.just(bean);
-                    }
-                }).subscribeOn(Schedulers.io()).observeOn(Schedulers.newThread());
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.newThread());
     }
 
-    public void delete(DownLoadBean bean) {
+    public void delete(String bean) {
         Log.d("duanyl", "delete: ");
-        dbManager.delete(bean.getUrl());
+        dbManager.delete(bean);
         file().delete();
         tempFile().delete();
         lastModifyFile().delete();
     }
-    public void deleteAll(){
+
+    public void deleteAll() {
         Log.d("duanyl", "deleteAll: ");
         dbManager.searchDownloadByAll().flatMap(new Function<List<DownLoadBean>, ObservableSource<?>>() {
             @Override
             public ObservableSource<?> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
-               for(DownLoadBean bean :downLoadBeen){
-                   delete(bean);
-               }
-             return null;
+                for (DownLoadBean bean : downLoadBeen) {
+                    delete(bean.getUrl());
+                }
+                return null;
             }
         });
     }
@@ -579,7 +591,7 @@ public class DownloadHelper {
         if (empty(bean.getSaveName())) {
             bean.setSaveName(fileName(url, response));
         }
-        downLoadStatus.setDownloadSize(Utils.contentLength(response));
+        downLoadStatus.setTotalSize(Utils.contentLength(response));
         bean.setLastModify((Utils.lastModify(response)));
         return bean;
     }
@@ -593,10 +605,11 @@ public class DownloadHelper {
         DownLoadStatus downLoadStatus = new DownLoadStatus(flag);
         if (empty(bean.getSaveName())) {
             bean.setSaveName(fileName(bean.getUrl(), response));
-            Log.d("duanyl", "saveFileInfo: "+defaultSavePath.toString());
+            Log.d("duanyl", "saveFileInfo: " + defaultSavePath.toString());
             bean.setSavePath(defaultSavePath.toString());
         }
-        downLoadStatus.setDownloadSize(Utils.contentLength(response));
+        downLoadStatus.setTotalSize(Utils.contentLength(response));
+        bean.setStatus(downLoadStatus);
         bean.setLastModify((Utils.lastModify(response)));
     }
 }

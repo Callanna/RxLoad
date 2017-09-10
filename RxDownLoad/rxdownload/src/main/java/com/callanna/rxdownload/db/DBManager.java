@@ -7,6 +7,7 @@ import android.util.Log;
 import com.squareup.sqlbrite2.BriteDatabase;
 import com.squareup.sqlbrite2.SqlBrite;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import io.reactivex.Observable;
@@ -62,9 +63,33 @@ public class DBManager {
        return db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_ALL)
                 .mapToList(DownLoadBean.MAPPER);
     }
-    public synchronized Observable<List<DownLoadBean>>  searchDownloadByStatus(int status){
+    public synchronized Observable<List<DownLoadBean>>  searchStatus(int status) {
         return db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_STATUS, String.valueOf(status))
                 .mapToList(DownLoadBean.MAPPER);
+    }
+    public synchronized Observable<List<DownLoadBean>>  searchDownloadByStatus(int status){
+        Log.d("duanyl", "searchByUrl: ");
+        List<DownLoadBean> downLoadBeanList = new LinkedList<>();
+        Cursor cursor = db.query(QUERY_STATUS,status+"");
+        while (cursor.moveToNext()){
+            String url = cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_URL));
+            DownLoadBean downLoadBean = new DownLoadBean(url);
+            DownLoadStatus downLoadStatus = new DownLoadStatus();
+            downLoadBean.setId(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_ID)));
+            downLoadStatus.setStatus(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_DOWNLOAD_FLAG)));
+            downLoadStatus.setDownloadSize(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_DOWNLOAD_SIZE)));
+            downLoadStatus.setTotalSize(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_TOTAL_SIZE)));
+            downLoadBean.setStatus(downLoadStatus);
+            downLoadBean.setSaveName(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_SAVE_NAME)));
+            downLoadBean.setIsSupportRange(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_RANGE))==1);
+            downLoadBean.setChanged(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_CHENGED)) == 1);
+            downLoadBean.setLastModify(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_LastModify)));
+            downLoadBean.setSavePath(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_SAVE_PATH)));
+            downLoadBeanList.add(downLoadBean);
+        }
+        cursor.close();
+        db.close();
+        return   Observable.just(downLoadBeanList);
     }
     public synchronized Observable<DownLoadBean>  searchDownloadByUrl(String url){
         Log.d("duanyl", "searchDownloadByUrl: ");

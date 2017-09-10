@@ -118,7 +118,9 @@ public class Utils {
     }
 
     public static String lastModify(Response<?> response) {
-        return response.headers().get("Last-Modified");
+        String last = response.headers().get("Last-Modified");
+        log("------->lastModify :"+last);
+        return last;
     }
 
     public static long contentLength(Response<?> response) {

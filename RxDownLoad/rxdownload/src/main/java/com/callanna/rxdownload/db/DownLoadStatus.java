@@ -23,7 +23,8 @@ public class DownLoadStatus implements Parcelable {
             return new DownLoadStatus[size];
         }
     };
-    public static final int NORMAL = 0x01;      //未下载
+    public static final int NORMAL = 0x00;      //未下载
+    public static final int PREPAREING = 0x01;      //未下载
     public static final int WAITING = 0x02;     //等待中
     public static final int STARTED = 0x03;     //已开始下载
     public static final int PAUSED = 0x04;      //已暂停
@@ -31,7 +32,7 @@ public class DownLoadStatus implements Parcelable {
     public static final int COMPLETED = 0x06;   //已完成
     public static final int FAILED = 0x07;      //下载失败
 
-    private int status;
+    private int status = NORMAL;
 
     private long downloadsize;
 
@@ -69,6 +70,36 @@ public class DownLoadStatus implements Parcelable {
 
     public int getStatus() {
         return status;
+    }
+    public String getStringStatus() {
+        String temp = "";
+        switch (status){
+            case NORMAL:
+                temp = "未下载";
+                break;
+            case PREPAREING:
+                temp= "准备下载中";
+                break;
+            case WAITING:
+                temp= "等待下载中";
+                break;
+            case STARTED:
+                temp = "下载开始";
+                break;
+            case PAUSED:
+                temp= "下载已暂停";
+                break;
+            case CANCELED:
+                temp = "下载已取消";
+                break;
+            case COMPLETED:
+                temp= "下载已完成";
+                break;
+            case FAILED:
+                temp="下载已失败";
+                break;
+        }
+        return temp;
     }
 
     public long getTotalSize() {

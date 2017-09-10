@@ -18,6 +18,7 @@ import java.text.ParseException;
 import io.reactivex.FlowableEmitter;
 import okhttp3.ResponseBody;
 
+import static android.content.ContentValues.TAG;
 import static com.callanna.rxdownload.Utils.GMTToLong;
 import static com.callanna.rxdownload.Utils.log;
 import static com.callanna.rxdownload.Utils.longToGMT;
@@ -33,7 +34,7 @@ import static okhttp3.internal.Util.closeQuietly;
  */
 public class FileHelper {
     private static final int EACH_RECORD_SIZE = 16; //long + long = 8 + 8
-    private static final String ACCESS = "rw";
+    private static final String ACCESS = "rws";
     private int RECORD_FILE_TOTAL_SIZE;
     //|*********************|
     //|*****Record  File****|
@@ -111,27 +112,37 @@ public class FileHelper {
 
     public void saveFile(FlowableEmitter<DownLoadStatus> emitter, int i, File tempFile,
                          File saveFile, ResponseBody response) {
-        Log.d("duanyl", "saveFile: temp");
+        Log.d("duanyl", "saveFile: temp"+i);
+
         RandomAccessFile record = null;
         FileChannel recordChannel = null;
         RandomAccessFile save = null;
         FileChannel saveChannel = null;
         InputStream inStream = null;
-        log("Thread: " + Thread.currentThread().getName() + "; saveFile start, content length: " + response.contentLength());
         try {
             try {
                 int readLen;
                 byte[] buffer = new byte[2048];
 
                 DownLoadStatus status = new DownLoadStatus();
+                status.setStatus(DownLoadStatus.STARTED);
+                //随机访问文件，可以指定断点续传的起始位置
                 record = new RandomAccessFile(tempFile, ACCESS);
+                //Chanel NIO中的用法，由于RandomAccessFile没有使用缓存策略，
+                // 直接使用会使得下载速度变慢，亲测缓存下载3.3秒的文件，
+                // 用普通的RandomAccessFile需要20多秒。
+
                 recordChannel = record.getChannel();
+                // 内存映射，直接使用RandomAccessFile，
+                // 是用其seek方法指定下载的起始位置，
+                // 使用缓存下载，在这里指定下载位置。
                 MappedByteBuffer recordBuffer = recordChannel
                         .map(READ_WRITE, 0, RECORD_FILE_TOTAL_SIZE);
 
                 int startIndex = i * EACH_RECORD_SIZE;
 
                 long start = recordBuffer.getLong(startIndex);
+                log("savefile=====>"+start);
                 long oldStart = start;
 //                long end = recordBuffer.getLong(startIndex + 8);
 
@@ -153,8 +164,12 @@ public class FileHelper {
                     saveBuffer.put(buffer, 0, readLen);
                     recordBuffer.putLong(startIndex, start);
                     status.setDownloadSize(totalSize - getResidue(recordBuffer));
+                    if(status.getDownloadSize() ==totalSize){
+                        status.setStatus(DownLoadStatus.COMPLETED);
+                    }
                     emitter.onNext(status);
                 }
+
                 emitter.onComplete();
             } finally {
                 closeQuietly(record);
@@ -221,6 +236,7 @@ public class FileHelper {
                     .map(READ_WRITE, i * EACH_RECORD_SIZE, (i + 1) * EACH_RECORD_SIZE);
             long startByte = buffer.getLong();
             long endByte = buffer.getLong();
+            log("readDownloadRange: "+i +",start:"+startByte+",end:"+endByte);
             return new DownloadRange(startByte, endByte);
         } finally {
             closeQuietly(channel);
@@ -242,6 +258,8 @@ public class FileHelper {
 
     private void prepareFile(File tempFile, File saveFile, long fileLength)
             throws IOException {
+        log("prepareffile"+fileLength);
+
         RandomAccessFile rFile = null;
         RandomAccessFile rRecord = null;
         FileChannel channel = null;

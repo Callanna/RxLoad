@@ -1,12 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
     android:layout_height="match_parent" >
 
-    <Button
-        android:id="@+id/btn_download"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="DownLoad"  />
+        <Button
+            android:layout_margin="10dp"
+            android:id="@+id/btn_signle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="单任务下载"  />
+        <Button
+            android:layout_margin="10dp"
+            android:id="@+id/btn_muti"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="批量下载" />
+        <Button
+            android:layout_margin="10dp"
+            android:id="@+id/btn_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="查看下载进度" />
 
-</RelativeLayout>
+</LinearLayout>

@@ -40,7 +40,7 @@ public class DownLoadBean {
 
     public DownLoadBean(String url) {
         this.url = url;
-        this.status = new DownLoadStatus(DownLoadStatus.WAITING);
+        this.status = new DownLoadStatus(DownLoadStatus.NORMAL);
     }
 
     public int getId() {
@@ -62,7 +62,24 @@ public class DownLoadBean {
     public String getSaveName() {
         return saveName;
     }
-
+    public String getFileName() {
+        if ((saveName != null) && (saveName.length() > 0)) {
+            int dot = saveName.lastIndexOf('.');
+            if ((dot >-1) && (dot < (saveName.length()))) {
+                return saveName.substring(0, dot);
+            }
+        }
+        return saveName;
+    }
+    public String getFileExtensionName() {
+        if ((saveName != null) && (saveName.length() > 0)) {
+            int dot = saveName.lastIndexOf('.');
+            if ((dot >-1) && (dot < (saveName.length() - 1))) {
+                return saveName.substring(dot + 1);
+            }
+        }
+        return saveName;
+    }
     public void setSaveName(String saveName) {
         this.saveName = saveName;
     }
