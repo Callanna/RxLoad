@@ -3,9 +3,16 @@ package com.callanna.rxdownload;
 import android.text.TextUtils;
 import android.util.Log;
 
+import org.reactivestreams.Publisher;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.ProtocolException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -13,12 +20,16 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.reactivex.disposables.Disposable;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableTransformer;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.functions.BiPredicate;
 import okhttp3.internal.http.HttpHeaders;
+import retrofit2.HttpException;
 import retrofit2.Response;
 
-import static android.text.TextUtils.concat;
-import static java.io.File.separator;
 import static java.lang.String.format;
 import static java.util.Locale.getDefault;
 import static java.util.TimeZone.getTimeZone;
@@ -34,6 +45,10 @@ public class Utils {
     private static final CharSequence CACHE = ".cache";
     private static final CharSequence TMP_SUFFIX = ".tmp";
     private static final CharSequence LMF_SUFFIX = ".lmf";
+    public static final String REQUEST_RETRY_HINT = "Request";
+    public static final String NORMAL_RETRY_HINT = "Normal download";
+    public static final String RANGE_RETRY_HINT = "Range %d";
+    public static final String RETRY_HINT = "%s get [%s] error, now retry [%d] times";
     private static boolean DEBUG = true;
 
     public static void setDebug(boolean flag) {
@@ -43,7 +58,7 @@ public class Utils {
     public static void log(String message) {
         if (empty(message)) return;
         if (DEBUG) {
-            Log.i(TAG, message);
+            Log.d(TAG, message);
         }
     }
 
@@ -110,13 +125,6 @@ public class Utils {
         }
     }
 
-
-    public static void dispose(Disposable disposable) {
-        if (disposable != null && !disposable.isDisposed()) {
-            disposable.dispose();
-        }
-    }
-
     public static String lastModify(Response<?> response) {
         String last = response.headers().get("Last-Modified");
         log("------->lastModify :"+last);
@@ -164,32 +172,7 @@ public class Utils {
     }
 
 
-    /**
-     * return file paths
-     *
-     * @param saveName saveName
-     * @param savePath savePath
-     * @return filePath, tempPath, lmfPath
-     */
-    public static String[] getPaths(String saveName, String savePath) {
-        String cachePath = concat(savePath, separator, CACHE).toString();
-        String filePath = concat(savePath, separator, saveName).toString();
-        String tempPath = concat(cachePath, separator, saveName, TMP_SUFFIX).toString();
-        String lmfPath = concat(cachePath, separator, saveName, LMF_SUFFIX).toString();
-        return new String[]{filePath, tempPath, lmfPath};
-    }
 
-    /**
-     * return files
-     *
-     * @param saveName saveName
-     * @param savePath savePath
-     * @return file, tempFile, lmfFile
-     */
-    public static File[] getFiles(String saveName, String savePath) {
-        String[] paths = getPaths(saveName, savePath);
-        return new File[]{new File(paths[0]), new File(paths[1]), new File(paths[2])};
-    }
     public static void mkdirs(String... paths) {
         for (String each : paths) {
             File file = new File(each);
@@ -200,24 +183,6 @@ public class Utils {
         }
     }
 
-
-    /**
-     * delete files
-     *
-     * @param files files
-     */
-    public static void deleteFiles(File... files) {
-        for (File each : files) {
-            if (each.exists()) {
-                boolean flag = each.delete();
-                if (flag) {
-                    log(format(getDefault(), "FILE_DELETE_SUCCESS", each.getName()));
-                } else {
-                    log(format(getDefault(), "FILE_DELETE_FAILED", each.getName()));
-                }
-            }
-        }
-    }
 
     private static String transferEncoding(Response<?> response) {
         return response.headers().get("Transfer-Encoding");
@@ -232,4 +197,77 @@ public class Utils {
         Log.d("duanyl", "acceptRanges: "+ response.headers().get("Accept-Ranges"));
         return response.headers().get("Accept-Ranges");
     }
+
+
+
+    public static <U> ObservableTransformer<U, U> retry(final String hint, final int retryCount) {
+        return new ObservableTransformer<U, U>() {
+            @Override
+            public ObservableSource<U> apply(Observable<U> upstream) {
+                return upstream.retry(new BiPredicate<Integer, Throwable>() {
+                    @Override
+                    public boolean test(Integer integer, Throwable throwable) throws Exception {
+                        return retry(hint, retryCount, integer, throwable);
+                    }
+                });
+            }
+        };
+    }
+
+    public static <U> FlowableTransformer<U, U> retry2(final String hint, final int retryCount) {
+        return new FlowableTransformer<U, U>() {
+            @Override
+            public Publisher<U> apply(Flowable<U> upstream) {
+                return upstream.retry(new BiPredicate<Integer, Throwable>() {
+                    @Override
+                    public boolean test(Integer integer, Throwable throwable) throws Exception {
+                        return retry(hint, retryCount, integer, throwable);
+                    }
+                });
+            }
+        };
+    }
+
+    public static Boolean retry(String hint, int maxRetryCount, Integer integer, Throwable throwable) {
+        if (throwable instanceof ProtocolException) {
+            if (integer < maxRetryCount + 1) {
+                log(RETRY_HINT, hint, "ProtocolException", integer);
+                return true;
+            }
+            return false;
+        } else if (throwable instanceof UnknownHostException) {
+            if (integer < maxRetryCount + 1) {
+                log(RETRY_HINT, hint, "UnknownHostException", integer);
+                return true;
+            }
+            return false;
+        } else if (throwable instanceof HttpException) {
+            if (integer < maxRetryCount + 1) {
+                log(RETRY_HINT, hint, "HttpException", integer);
+                return true;
+            }
+            return false;
+        } else if (throwable instanceof SocketTimeoutException) {
+            if (integer < maxRetryCount + 1) {
+                log(RETRY_HINT, hint, "SocketTimeoutException", integer);
+                return true;
+            }
+            return false;
+        } else if (throwable instanceof ConnectException) {
+            if (integer < maxRetryCount + 1) {
+                log(RETRY_HINT, hint, "ConnectException", integer);
+                return true;
+            }
+            return false;
+        } else if (throwable instanceof SocketException) {
+            if (integer < maxRetryCount + 1) {
+                log(RETRY_HINT, hint, "SocketException", integer);
+                return true;
+            }
+            return false;
+        } else {
+            return false;
+        }
+    }
+
 }

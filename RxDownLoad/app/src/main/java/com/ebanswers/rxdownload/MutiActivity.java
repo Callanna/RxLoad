@@ -2,9 +2,8 @@ package com.ebanswers.rxdownload;
 
 import android.content.Context;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -19,10 +18,9 @@ import java.util.List;
 import io.reactivex.Observer;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
 
 public class MutiActivity extends AppCompatActivity implements View.OnClickListener {
-    private Button btn_download,btn_stop,btn_delete;
+    private Button btn_download,btn_stop,btn_delete,btn_progress;
     private TextView tv_download;
     public static void start(Context context){
         Intent intent = new Intent(context,MutiActivity.class);
@@ -34,12 +32,14 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_muti);
         btn_download= (Button) findViewById(R.id.btn_download);
+        btn_progress= (Button) findViewById(R.id.btn_progress);
         btn_stop= (Button) findViewById(R.id.btn_stop);
         btn_delete= (Button) findViewById(R.id.btn_delete);
         tv_download = (TextView) findViewById(R.id.tv_download);
         btn_download.setOnClickListener(this);
         btn_stop.setOnClickListener(this);
         btn_delete.setOnClickListener(this);
+        btn_progress.setOnClickListener(this);
         initData();
         RxDownLoad.getInstance().getDownLoading().subscribe(new Observer<List<DownLoadBean>>() {
             @Override
@@ -130,6 +130,11 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
                     RxDownLoad.getInstance().pauseAll();
                 }
                 break;
+            case R.id.btn_progress:
+                DownLoadActivity.start(MutiActivity.this);
+                break;
         }
     }
+
+
 }

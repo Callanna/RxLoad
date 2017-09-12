@@ -18,6 +18,8 @@ public class Db {
         static final String COLUMN_URL = "url";
         static final String COLUMN_SAVE_NAME = "save_name";
         static final String COLUMN_SAVE_PATH = "save_path";
+        static final String COLUMN_TEMP_PATH = "temp_path";
+        static final String COLUMN_LMDF_PATH = "lmdf_path";
         static final String COLUMN_DOWNLOAD_SIZE = "download_size";
         static final String COLUMN_TOTAL_SIZE = "total_size";
         static final String COLUMN_DOWNLOAD_FLAG = "download_flag";
@@ -30,6 +32,8 @@ public class Db {
                         COLUMN_URL + " TEXT NOT NULL," +
                         COLUMN_SAVE_NAME + " TEXT," +
                         COLUMN_SAVE_PATH + " TEXT," +
+                        COLUMN_TEMP_PATH + " TEXT," +
+                        COLUMN_LMDF_PATH + " TEXT," +
                         COLUMN_LastModify + " TEXT," +
                         COLUMN_TOTAL_SIZE + " INTEGER," +
                         COLUMN_DOWNLOAD_SIZE + " INTEGER," +

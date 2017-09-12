@@ -2,7 +2,6 @@ package com.callanna.rxdownload.db;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.util.Log;
 
 import com.squareup.sqlbrite2.BriteDatabase;
 import com.squareup.sqlbrite2.SqlBrite;
@@ -12,6 +11,8 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.schedulers.Schedulers;
+
+import static com.callanna.rxdownload.Utils.log;
 
 /**
  * Created by Callanna on 2017/7/16.
@@ -28,7 +29,6 @@ public class DBManager {
             "SELECT *  FROM " + Db.DownLoadTable.TABLE_NAME + " WHERE " + Db.DownLoadTable.COLUMN_DOWNLOAD_FLAG + " = ?";
 
     private volatile static DBManager singleton;
-    private final Object databaseLock = new Object();
     private DBHelper mDbOpenHelper;
     private BriteDatabase db;
     private SqlBrite sqlBrite;
@@ -40,12 +40,12 @@ public class DBManager {
         sqlBrite =  new SqlBrite.Builder()
                 .logger(new SqlBrite.Logger() {
                     @Override public void log(String message) {
-                        Log.v("DataBase",message);
+                        log("DataBase   "+message);
                     }
                 })
                 .build();
         db = sqlBrite.wrapDatabaseHelper(mDbOpenHelper, Schedulers.io());
-        db.setLoggingEnabled(true);
+        db.setLoggingEnabled(false);
     }
 
     public static DBManager getSingleton(Context context) {
@@ -60,15 +60,17 @@ public class DBManager {
     }
 
     public synchronized Observable<List<DownLoadBean>> searchDownloadByAll(){
+        log("DataBase", "searchDownloadByAll: ");
        return db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_ALL)
                 .mapToList(DownLoadBean.MAPPER);
     }
     public synchronized Observable<List<DownLoadBean>>  searchStatus(int status) {
+        log("DataBase", "searchStatus: ");
         return db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_STATUS, String.valueOf(status))
                 .mapToList(DownLoadBean.MAPPER);
     }
     public synchronized Observable<List<DownLoadBean>>  searchDownloadByStatus(int status){
-        Log.d("duanyl", "searchByUrl: ");
+        log("DataBase", "searchByUrl: ");
         List<DownLoadBean> downLoadBeanList = new LinkedList<>();
         Cursor cursor = db.query(QUERY_STATUS,status+"");
         while (cursor.moveToNext()){
@@ -85,6 +87,8 @@ public class DBManager {
             downLoadBean.setChanged(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_CHENGED)) == 1);
             downLoadBean.setLastModify(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_LastModify)));
             downLoadBean.setSavePath(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_SAVE_PATH)));
+            downLoadBean.setTempPath(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_TEMP_PATH)));
+            downLoadBean.setLmfPath(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_LMDF_PATH)));
             downLoadBeanList.add(downLoadBean);
         }
         cursor.close();
@@ -92,12 +96,12 @@ public class DBManager {
         return   Observable.just(downLoadBeanList);
     }
     public synchronized Observable<DownLoadBean>  searchDownloadByUrl(String url){
-        Log.d("duanyl", "searchDownloadByUrl: ");
+        log("DataBase", "searchDownloadByUrl: ");
         return  db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_URL,url)
                 .mapToOneOrDefault(DownLoadBean.MAPPER,new DownLoadBean(url));
     }
     public synchronized DownLoadBean  searchByUrl(String url){
-        Log.d("duanyl", "searchByUrl: ");
+        log("DataBase", "searchByUrl: ");
         DownLoadBean downLoadBean = new DownLoadBean(url);
         DownLoadStatus downLoadStatus = new DownLoadStatus();
         Cursor cursor = db.query(QUERY_URL,url);
@@ -119,6 +123,10 @@ public class DBManager {
             downLoadBean.setLastModify(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_LastModify)));
 
             downLoadBean.setSavePath(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_SAVE_PATH)));
+
+            downLoadBean.setTempPath(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_TEMP_PATH)));
+            downLoadBean.setLmfPath(cursor.getString(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_LMDF_PATH)));
+
         }
         cursor.close();
         db.close();

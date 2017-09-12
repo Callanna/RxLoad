@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:paddingTop="10dp"
+    android:gravity="center_vertical"
+    android:layout_height="80dp">
+    <ImageView
+        android:id="@+id/imv_app"
+        android:layout_gravity="center_vertical"
+        android:layout_width="60dp"
+        android:layout_height="60dp" />
+    <RelativeLayout
+        android:orientation="vertical"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent">
+        <TextView
+            android:id="@+id/tv_name"
+            android:text="QQ"
+            android:layout_above="@+id/progress"
+            android:textSize="24sp"
+            android:textColor="@color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <ProgressBar
+            android:id="@+id/progress"
+            style="@android:style/Widget.Material.ProgressBar.Horizontal"
+            android:progress="0"
+            android:max="100"
+            android:layout_centerVertical="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+         <TextView
+             android:text="下载中"
+             android:id="@+id/tv_progress_status"
+             android:layout_below="@id/progress"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content" />
+        <TextView
+            android:text="2M/20M"
+            android:id="@+id/tv_progress_size"
+            android:layout_alignParentRight="true"
+            android:layout_below="@id/progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </RelativeLayout>
+    <Button
+        android:id="@+id/btn_start"
+        android:gravity="center"
+        android:text="开始"
+        android:layout_width="55dp"
+        android:layout_height="wrap_content" />
+    <Button
+        android:id="@+id/btn_delete"
+        android:gravity="center"
+        android:text="删除"
+        android:layout_width="55dp"
+        android:layout_height="wrap_content" />
+</LinearLayout>

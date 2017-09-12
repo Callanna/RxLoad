@@ -1,7 +1,6 @@
 package com.callanna.rxdownload.api;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -38,16 +37,17 @@ import retrofit2.Retrofit;
 
 import static android.os.Environment.DIRECTORY_DOWNLOADS;
 import static android.os.Environment.getExternalStoragePublicDirectory;
+import static com.callanna.rxdownload.Utils.NORMAL_RETRY_HINT;
+import static com.callanna.rxdownload.Utils.RANGE_RETRY_HINT;
+import static com.callanna.rxdownload.Utils.REQUEST_RETRY_HINT;
 import static com.callanna.rxdownload.Utils.empty;
 import static com.callanna.rxdownload.Utils.fileName;
+import static com.callanna.rxdownload.Utils.formatStr;
 import static com.callanna.rxdownload.Utils.log;
 import static com.callanna.rxdownload.Utils.mkdirs;
+import static com.callanna.rxdownload.db.DownLoadStatus.CANCELED;
 import static com.callanna.rxdownload.db.DownLoadStatus.COMPLETED;
-import static com.callanna.rxdownload.db.DownLoadStatus.FAILED;
-import static com.callanna.rxdownload.db.DownLoadStatus.NORMAL;
-import static com.callanna.rxdownload.db.DownLoadStatus.PAUSED;
 import static com.callanna.rxdownload.db.DownLoadStatus.PREPAREING;
-import static com.callanna.rxdownload.db.DownLoadStatus.STARTED;
 import static com.callanna.rxdownload.db.DownLoadStatus.WAITING;
 import static java.io.File.separator;
 
@@ -64,18 +64,8 @@ public class DownloadHelper {
     public static final String LMF_SUFFIX = ".lmf";  //last modify file
     private int maxRetryCount = 3;
     private int maxThreads = 3;
-
     private String defaultSavePath = "";
-    private String filePath = "";
-    private String tempPath = "";
-    private String lmfPath = "";
     private String cachePath = "";
-
-    private long contentLength;
-    private String lastModify;
-
-    private boolean rangeSupport = false;
-    private boolean serverFileChanged = false;
 
     private FileHelper fileHelper;
     private DownloadApi downloadApi;
@@ -109,21 +99,6 @@ public class DownloadHelper {
         this.maxThreads = maxThreads;
     }
 
-    /**
-     * return Files
-     *
-     * @param url url
-     * @return Files = {file,tempFile,lmfFile}
-     */
-    @Nullable
-    public File[] getFiles(String url) {
-        DownLoadBean record = dbManager.searchByUrl(url);
-        if (record == null) {
-            return null;
-        } else {
-            return Utils.getFiles(record.getSaveName(), record.getSavePath());
-        }
-    }
 
     /**
      * prepare normal download, create files and save last-modify.
@@ -131,8 +106,8 @@ public class DownloadHelper {
      * @throws IOException
      * @throws ParseException
      */
-    public void prepareNormalDownload() throws IOException, ParseException {
-        fileHelper.prepareDownload(lastModifyFile(), file(), contentLength, lastModify);
+    public void prepareNormalDownload(DownLoadBean bean) throws IOException, ParseException {
+        fileHelper.prepareDownload(new File(bean.getLmfPath()), new File(bean.getSavePath()), bean.getStatus().getTotalSize());
     }
 
     /**
@@ -141,8 +116,8 @@ public class DownloadHelper {
      * @throws IOException
      * @throws ParseException
      */
-    public void prepareRangeDownload() throws IOException, ParseException {
-        fileHelper.prepareDownload(lastModifyFile(), tempFile(), file(), contentLength, lastModify);
+    public void prepareRangeDownload(DownLoadBean bean) throws IOException, ParseException {
+        fileHelper.prepareDownload(new File(bean.getLmfPath()),new File(bean.getTempPath()), new File(bean.getSavePath()),  bean.getStatus().getTotalSize());
     }
 
     /**
@@ -152,8 +127,8 @@ public class DownloadHelper {
      * @return
      * @throws IOException
      */
-    public DownloadRange readDownloadRange(int index) throws IOException {
-        return fileHelper.readDownloadRange(tempFile(), index);
+    public DownloadRange readDownloadRange(File temp,int index) throws IOException {
+        return fileHelper.readDownloadRange(temp, index);
     }
 
 
@@ -163,9 +138,9 @@ public class DownloadHelper {
      * @param e        emitter
      * @param response response
      */
-    public void save(FlowableEmitter<DownLoadStatus> e, ResponseBody response) {
+    public void save(FlowableEmitter<DownLoadStatus> e,String path, ResponseBody response) {
 
-        fileHelper.saveFile(e, file(), response);
+        fileHelper.saveFile(e, new File(path), response);
     }
 
     /**
@@ -176,9 +151,9 @@ public class DownloadHelper {
      * @param response response
      * @throws IOException
      */
-    public void save(FlowableEmitter<DownLoadStatus> emitter, int index, ResponseBody response)
+    public void save(FlowableEmitter<DownLoadStatus> emitter,String path,String tpath, int index, ResponseBody response)
             throws IOException {
-        fileHelper.saveFile(emitter, index, tempFile(), file(), response);
+        fileHelper.saveFile(emitter, index, new File(tpath), new File(path), response);
     }
 
     /**
@@ -187,16 +162,15 @@ public class DownloadHelper {
      * @return response
      */
     public Publisher<DownLoadStatus> download(DownLoadBean bean) throws InterruptedException {
-
         if (bean.getIsSupportRange()) {
             List<Publisher<DownLoadStatus>> tasks = new ArrayList<>();
             for (int i = 0; i < maxThreads; i++) {
-                TimeUnit.MILLISECONDS.sleep(200);
-                tasks.add(rangeDownload(i, bean.getUrl()));
+                TimeUnit.MILLISECONDS.sleep(300);
+                tasks.add(rangeDownload(i, bean));
             }
             return Flowable.mergeDelayError(tasks);
         } else {
-            return download(bean.getUrl());
+            return download(bean.getUrl(),bean.getSavePath());
         }
     }
 
@@ -205,16 +179,16 @@ public class DownloadHelper {
      *
      * @return response
      */
-    public Publisher<DownLoadStatus> download(String url) {
+    public Publisher<DownLoadStatus> download(String url,final String path) {
 
         return downloadApi.download(null, url)
                 .subscribeOn(Schedulers.io())  //Important!
                 .flatMap(new Function<Response<ResponseBody>, Publisher<DownLoadStatus>>() {
                     @Override
                     public Publisher<DownLoadStatus> apply(final Response<ResponseBody> response) throws Exception {
-                        return save(-1, response.body());
+                        return save(path,"",-1,response.body());
                     }
-                });
+                }).compose(Utils.<DownLoadStatus>retry2(NORMAL_RETRY_HINT,maxRetryCount));
     }
 
     /**
@@ -223,12 +197,12 @@ public class DownloadHelper {
      * @param index download index
      * @return response
      */
-    public Publisher<DownLoadStatus> rangeDownload(final int index, final String url) {
+    public Publisher<DownLoadStatus> rangeDownload(final int index, final DownLoadBean bean) {
         return Flowable
                 .create(new FlowableOnSubscribe<DownloadRange>() {
                     @Override
                     public void subscribe(FlowableEmitter<DownloadRange> e) throws Exception {
-                        DownloadRange range = readDownloadRange(index);
+                        DownloadRange range = readDownloadRange(new File(bean.getTempPath()),index);
                         if (range.legal()) {
                             e.onNext(range);
                         }
@@ -241,16 +215,18 @@ public class DownloadHelper {
                             throws Exception {
                         String rangeStr = "bytes=" + range.start + "-" + range.end;
                         log("rangeDownload--->" + rangeStr);
-                        return downloadApi.download(rangeStr, url);
+                        return downloadApi.download(rangeStr, bean.getUrl());
                     }
                 })
                 .flatMap(new Function<Response<ResponseBody>, Publisher<DownLoadStatus>>() {
                     @Override
                     public Publisher<DownLoadStatus> apply(Response<ResponseBody> response) throws Exception {
-                        return save(index, response.body());
+                        return save(bean.getSavePath(),bean.getTempPath(),index, response.body());
                     }
                 })
-                .subscribeOn(Schedulers.io());  //Important!;
+                .subscribeOn(Schedulers.io())  //Important!;
+                .compose(Utils.<DownLoadStatus>retry2(formatStr(RANGE_RETRY_HINT, index),maxRetryCount));
+
     }
 
     /**
@@ -260,126 +236,23 @@ public class DownloadHelper {
      * @param response 响应值
      * @return Flowable
      */
-    private Publisher<DownLoadStatus> save(final int index, final ResponseBody response) {
+    private Publisher<DownLoadStatus> save(final String path, final String tpath, final int index, final ResponseBody response) {
 
         Flowable<DownLoadStatus> flowable = Flowable.create(new FlowableOnSubscribe<DownLoadStatus>() {
             @Override
             public void subscribe(FlowableEmitter<DownLoadStatus> emitter) throws Exception {
                 if (index == -1) {
-                    save(emitter, response);
+                    save(emitter,path , response);
                 } else {
-                    save(emitter, index, response);
+                    save(emitter,path,tpath, index, response);
                 }
             }
         }, BackpressureStrategy.LATEST)
                 .replay(1)
                 .autoConnect();
-        return flowable.throttleFirst(100, TimeUnit.MILLISECONDS).mergeWith(flowable.takeLast(1))
+        return flowable.throttleFirst(200, TimeUnit.MILLISECONDS).mergeWith(flowable.takeLast(1))
                 .subscribeOn(Schedulers.newThread());
     }
-
-    public int getMaxRetryCount() {
-        return maxRetryCount;
-    }
-
-    public int getMaxThreads() {
-        return maxThreads;
-    }
-
-    public boolean isSupportRange() {
-        return rangeSupport;
-    }
-
-    public void setRangeSupport(boolean rangeSupport) {
-        this.rangeSupport = rangeSupport;
-    }
-
-    public boolean isFileChanged() {
-        return serverFileChanged;
-    }
-
-    public void setFileChanged(boolean serverFileChanged) {
-        this.serverFileChanged = serverFileChanged;
-    }
-
-    public long getContentLength() {
-        return contentLength;
-    }
-
-    public void setContentLength(long contentLength) {
-        this.contentLength = contentLength;
-    }
-
-    public void setLastModify(String lastModify) {
-        this.lastModify = lastModify;
-    }
-
-    public String getSaveName() {
-        return filePath;
-    }
-
-    public void setSaveName(String saveName) {
-        filePath = saveName;
-    }
-
-    public File file() {
-        return new File(filePath);
-    }
-
-    public File tempFile() {
-        return new File(tempPath);
-    }
-
-    public File lastModifyFile() {
-        return new File(lmfPath);
-    }
-
-    public boolean fileComplete() {
-        return file().length() == contentLength;
-    }
-
-    public boolean tempFileDamaged() throws IOException {
-        return fileHelper.tempFileDamaged(tempFile(), contentLength);
-    }
-
-    public String readLastModify() throws IOException {
-        return fileHelper.readLastModify(lastModifyFile());
-    }
-
-    public boolean fileNotComplete() throws IOException {
-        return fileHelper.fileNotComplete(tempFile());
-    }
-
-    public File[] getFiles() {
-        return new File[]{file(), tempFile(), lastModifyFile()};
-    }
-
-
-    public void start(DownLoadBean bean) {
-        if (dbManager.recordNotExists(bean.getUrl())) {
-            dbManager.add(bean);
-        } else {
-            bean.getStatus().setStatus(STARTED);
-            dbManager.updateStatusByUrl(bean.getUrl(), STARTED);
-        }
-    }
-
-    public void update(String url, DownLoadStatus status) {
-        dbManager.updateStatusByUrl(url, status);
-    }
-
-    public void error(String url) {
-        dbManager.updateStatusByUrl(url, FAILED);
-    }
-
-    public void complete(String url) {
-        dbManager.updateStatusByUrl(url, COMPLETED);
-    }
-
-    public void cancel(String url) {
-        dbManager.updateStatusByUrl(url, PAUSED);
-    }
-
     public Flowable<DownLoadBean> prepare(final String url) {
         Flowable flowable = Flowable.create(new FlowableOnSubscribe<DownLoadBean>() {
             @Override
@@ -399,7 +272,6 @@ public class DownloadHelper {
                         .subscribe(new Consumer<DownLoadBean>() {
                             @Override
                             public void accept(@NonNull DownLoadBean bean) throws Exception {
-                                Log.d("duanyl", "accept: prepare");
                                 e.onNext(bean);
                                 e.onComplete();
                             }
@@ -443,30 +315,25 @@ public class DownloadHelper {
                 .doOnError(new Consumer<Throwable>() {
                     @Override
                     public void accept(Throwable throwable) throws Exception {
-                        log(throwable.getMessage());
-                        throwable.printStackTrace();
+                        log(throwable);
                         dbManager.updateStatusByUrl(bean.getUrl(), DownLoadStatus.FAILED);
+                    }
+                }).doOnComplete(new Action() {
+                    @Override
+                    public void run() throws Exception {
+                        dbManager.updateStatusByUrl(bean.getUrl(), DownLoadStatus.COMPLETED);
                     }
                 })
                 .toObservable();
     }
 
     private Publisher<DownLoadStatus> prepareDownLoad(DownLoadBean bean) {
-        String name = bean.getSaveName();
-        String path = bean.getSavePath();
-        Log.d("duanyl", "download:getSaveName  " + name);
-        Log.d("duanyl", "download:getSavePath  " + path + "," + bean.getIsSupportRange());
-        filePath = path+ "/" + name;
-        tempPath = cachePath + File.separator + bean.getFileName()+ TMP_SUFFIX;
-        lmfPath = cachePath + separator + bean.getFileName() + LMF_SUFFIX;
-        log("dunayl========>tempPath "+tempPath);
-        contentLength = bean.getStatus().getTotalSize();
         if(bean.getStatus().getStatus()==PREPAREING) {
             try {
                 if (bean.getIsSupportRange()) {
-                    prepareRangeDownload();
+                    prepareRangeDownload(bean);
                 } else {
-                    prepareNormalDownload();
+                    prepareNormalDownload(bean);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -478,58 +345,33 @@ public class DownloadHelper {
         return Flowable.just(bean.getStatus());
     }
 
-
-    private ObservableSource<DownLoadBean> checkUrl(final String url) {
-        Log.d("duanyl", "checkUrl: ");
-        return downloadApi.checkByGet(url)
-                .subscribeOn(Schedulers.io())
-                .flatMap(new Function<Response<ResponseBody>, ObservableSource<DownLoadBean>>() {
-                    @Override
-                    public ObservableSource<DownLoadBean> apply(@NonNull Response<ResponseBody> voidResponse) throws Exception {
-                        Log.d("duanyl", "apply: 1 checkUrl " + voidResponse.isSuccessful());
-                        DownLoadBean bean = new DownLoadBean(url);
-                        if (!voidResponse.isSuccessful()) {
-                            return checkRange(bean);
-                        } else {
-                            Log.d("duanyl", "apply: checkUrl");
-                            bean = saveFileInfo(url, voidResponse, WAITING);
-                            dbManager.add(bean);
-                            return Observable.just(bean);
-                        }
-                    }
-                });
-    }
-
     /**
      * http checkRangeByHead request,checkRange need info.
      *
      * @return empty Observable
      */
     private ObservableSource<DownLoadBean> checkRange(final DownLoadBean bean) {
-        Log.d("duanyl", "checkRange: " + bean.getUrl());
         return downloadApi.checkRangeByHead(TEST_RANGE_SUPPORT, bean.getUrl())
                 .flatMap(new Function<Response<Void>, ObservableSource<DownLoadBean>>() {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull Response<Void> response) throws Exception {
-                        Log.d("duanyl", "checkRange accept: " + response.isSuccessful());
                         if (response.isSuccessful()) {
                             saveFileInfo(bean, response, PREPAREING);
                             bean.setIsSupportRange(!Utils.notSupportRange(response));
-                            Log.d("duanyl", "checkRange accept: " + bean.getIsSupportRange());
                             if (dbManager != null) {
                                 dbManager.add(bean);
                             }
-                            Log.d("duanyl", "checkRange apply: "+bean.getStatus().getStringStatus());
+                            log("checkRange accept: " + bean.getIsSupportRange());
                         }
                         return Observable.just(bean);
                     }
                 }).doOnError(new Consumer<Throwable>() {
                     @Override
                     public void accept(@NonNull Throwable throwable) throws Exception {
-                        Log.d("duanyl", "checkRange accept: " + throwable.getMessage());
                         throwable.printStackTrace();
                     }
-                });
+                })
+                .compose(Utils.<DownLoadBean>retry(formatStr(REQUEST_RETRY_HINT),maxRetryCount));
     }
 
     /**
@@ -538,15 +380,14 @@ public class DownloadHelper {
      * @return empty Observable
      */
     private ObservableSource<DownLoadBean> checkFile(final DownLoadBean bean, final String lastModify) {
-        Log.d("duanyl", "checkFile: ");
         return downloadApi.checkFileByHead(lastModify, bean.getUrl())
                 .flatMap(new Function<Response<Void>, ObservableSource<DownLoadBean>>() {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull Response<Void> response) throws Exception {
-                        Log.d("duanyl", "accept: checkFile" + response.code());
+                        log("accept: checkFile" + response.code());
                         if (response.code() == 200) {
                             //如果时间一致，那么返回HTTP状态码304,如果 改变了 返回200
-                            delete(bean.getUrl());
+                            delete(bean);
                             return checkRange(bean);
                         }else{
                             return Observable.just(bean);
@@ -554,48 +395,33 @@ public class DownloadHelper {
                     }
                 })
                 .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.newThread());
+                .observeOn(Schedulers.newThread())
+                .compose(Utils.<DownLoadBean>retry(formatStr(REQUEST_RETRY_HINT),maxRetryCount));
+
     }
 
-    public void delete(String bean) {
-        Log.d("duanyl", "delete: ");
-        dbManager.delete(bean);
-        file().delete();
-        tempFile().delete();
-        lastModifyFile().delete();
+    public void delete(DownLoadBean bean) {
+        if(bean != null) {
+            dbManager.updateStatusByUrl(bean.getUrl(), CANCELED);
+            new File(bean.getSavePath()).delete();
+            new File(bean.getTempPath()).delete();
+            new File(bean.getLmfPath()).delete();
+        }
     }
 
     public void deleteAll() {
-        Log.d("duanyl", "deleteAll: ");
         dbManager.searchDownloadByAll().flatMap(new Function<List<DownLoadBean>, ObservableSource<?>>() {
             @Override
             public ObservableSource<?> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
                 for (DownLoadBean bean : downLoadBeen) {
-                    delete(bean.getUrl());
+                    if(bean.getStatus().getStatus() != COMPLETED) {
+                        delete(bean);
+                    }
                 }
                 return null;
             }
         });
     }
-
-    /**
-     * Save file info
-     *
-     * @param url      key
-     * @param response response
-     */
-    public DownLoadBean saveFileInfo(String url, Response<?> response, int flag) {
-        Log.d("duanyl", "saveFileInfo: ");
-        DownLoadBean bean = new DownLoadBean(url);
-        DownLoadStatus downLoadStatus = new DownLoadStatus(flag);
-        if (empty(bean.getSaveName())) {
-            bean.setSaveName(fileName(url, response));
-        }
-        downLoadStatus.setTotalSize(Utils.contentLength(response));
-        bean.setLastModify((Utils.lastModify(response)));
-        return bean;
-    }
-
     /**
      * Save file info
      *
@@ -605,9 +431,11 @@ public class DownloadHelper {
         DownLoadStatus downLoadStatus = new DownLoadStatus(flag);
         if (empty(bean.getSaveName())) {
             bean.setSaveName(fileName(bean.getUrl(), response));
-            Log.d("duanyl", "saveFileInfo: " + defaultSavePath.toString());
-            bean.setSavePath(defaultSavePath.toString());
+            bean.setSavePath(defaultSavePath.toString()+"/"+bean.getSaveName());
+            bean.setTempPath(cachePath + File.separator + bean.getFileName()+ TMP_SUFFIX);
+            bean.setLmfPath(cachePath + separator + bean.getFileName() + LMF_SUFFIX);
         }
+        Log.d("duanyl", "saveFilePath: " + bean.getSavePath());
         downLoadStatus.setTotalSize(Utils.contentLength(response));
         bean.setStatus(downLoadStatus);
         bean.setLastModify((Utils.lastModify(response)));

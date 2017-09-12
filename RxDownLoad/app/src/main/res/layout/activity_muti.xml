@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:orientation="vertical"
+    android:gravity="center_horizontal"
     android:layout_height="match_parent" >
     <TextView
         android:gravity="center"
@@ -41,5 +42,12 @@
             android:layout_height="wrap_content"
             android:text="取消" />
     </LinearLayout>
+
+    <Button
+        android:layout_margin="10dp"
+        android:id="@+id/btn_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="查看下载进度" />
 
 </LinearLayout>

@@ -18,7 +18,6 @@ import java.text.ParseException;
 import io.reactivex.FlowableEmitter;
 import okhttp3.ResponseBody;
 
-import static android.content.ContentValues.TAG;
 import static com.callanna.rxdownload.Utils.GMTToLong;
 import static com.callanna.rxdownload.Utils.log;
 import static com.callanna.rxdownload.Utils.longToGMT;
@@ -51,10 +50,10 @@ public class FileHelper {
         RECORD_FILE_TOTAL_SIZE = EACH_RECORD_SIZE * maxThreads;
     }
 
-    public void prepareDownload(File lastModifyFile, File saveFile, long fileLength, String lastModify)
+    public void prepareDownload(File lastModifyFile, File saveFile, long fileLength )
             throws IOException, ParseException {
 
-        writeLastModify(lastModifyFile, lastModify);
+        writeLastModify(lastModifyFile);
         prepareFile(saveFile, fileLength);
     }
 
@@ -75,11 +74,6 @@ public class FileHelper {
                 outputStream = new FileOutputStream(saveFile);
 
                 long contentLength = resp.contentLength();
-
-//                boolean isChunked = isChunked(resp);
-//                if (isChunked || contentLength == -1) {
-//                    status.isChunked = true;
-//                }
 
                 status.setTotalSize(contentLength);
 
@@ -103,16 +97,16 @@ public class FileHelper {
     }
 
     public void prepareDownload(File lastModifyFile, File tempFile, File saveFile,
-                                long fileLength, String lastModify)
+                                long fileLength )
             throws IOException, ParseException {
 
-        writeLastModify(lastModifyFile, lastModify);
+        writeLastModify(lastModifyFile );
         prepareFile(tempFile, saveFile, fileLength);
     }
 
     public void saveFile(FlowableEmitter<DownLoadStatus> emitter, int i, File tempFile,
                          File saveFile, ResponseBody response) {
-        Log.d("duanyl", "saveFile: temp"+i);
+        Log.d("duanyl", "saveFile: temp "+i+","+saveFile.getPath());
 
         RandomAccessFile record = null;
         FileChannel recordChannel = null;
@@ -164,12 +158,11 @@ public class FileHelper {
                     saveBuffer.put(buffer, 0, readLen);
                     recordBuffer.putLong(startIndex, start);
                     status.setDownloadSize(totalSize - getResidue(recordBuffer));
-                    if(status.getDownloadSize() ==totalSize){
+                    if(status.getDownloadSize() == totalSize){
                         status.setStatus(DownLoadStatus.COMPLETED);
                     }
                     emitter.onNext(status);
                 }
-
                 emitter.onComplete();
             } finally {
                 closeQuietly(record);
@@ -310,7 +303,7 @@ public class FileHelper {
         }
     }
 
-    private void writeLastModify(File file, String lastModify)
+    private void writeLastModify(File file )
             throws IOException, ParseException {
 
         RandomAccessFile record = null;
@@ -318,7 +311,7 @@ public class FileHelper {
             record = new RandomAccessFile(file, ACCESS);
             record.setLength(8);
             record.seek(0);
-            record.writeLong(GMTToLong(lastModify));
+            record.writeLong(GMTToLong(""));
         } finally {
             closeQuietly(record);
         }
