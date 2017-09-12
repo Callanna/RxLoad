@@ -45,7 +45,6 @@ import static com.callanna.rxdownload.Utils.fileName;
 import static com.callanna.rxdownload.Utils.formatStr;
 import static com.callanna.rxdownload.Utils.log;
 import static com.callanna.rxdownload.Utils.mkdirs;
-import static com.callanna.rxdownload.db.DownLoadStatus.CANCELED;
 import static com.callanna.rxdownload.db.DownLoadStatus.COMPLETED;
 import static com.callanna.rxdownload.db.DownLoadStatus.PREPAREING;
 import static com.callanna.rxdownload.db.DownLoadStatus.WAITING;
@@ -402,7 +401,7 @@ public class DownloadHelper {
 
     public void delete(DownLoadBean bean) {
         if(bean != null) {
-            dbManager.updateStatusByUrl(bean.getUrl(), CANCELED);
+            dbManager.clearStatusByUrl(bean.getUrl());
             new File(bean.getSavePath()).delete();
             new File(bean.getTempPath()).delete();
             new File(bean.getLmfPath()).delete();

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
@@ -73,6 +74,15 @@ public class RxDownLoad {
         downloadHelper = new DownloadHelper(context);
         disposableMap = new ConcurrentHashMap<>();
         semaphore = new Semaphore(maxDownloadNumber);
+        semaphore_prepared = new Semaphore(1);
+        flowable = Flowable.create(new FlowableOnSubscribe<String>() {
+            @Override
+            public void subscribe(@NonNull FlowableEmitter<String> e) throws Exception {
+                flowableEmitter = e;
+            }
+        }, BackpressureStrategy.ERROR);
+        flowable.subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.newThread()).subscribe(subscriber_prepare);
     }
 
     public static RxDownLoad init(Context context) {
@@ -137,18 +147,7 @@ public class RxDownLoad {
     private Flowable<String> flowable;
     private FlowableEmitter<String> flowableEmitter ;
     public synchronized Observable<DownLoadStatus> download(final String url) {
-        if(flowable == null) {
-            semaphore_prepared = new Semaphore(1);
-            flowable = Flowable.create(new FlowableOnSubscribe<String>() {
-                @Override
-                public void subscribe(@NonNull FlowableEmitter<String> e) throws Exception {
-                    flowableEmitter = e;
-                    flowableEmitter.onNext(url);
-                }
-            }, BackpressureStrategy.ERROR);
-            flowable.subscribe(subscriber_prepare);
-
-        }else{
+        if(flowableEmitter!= null) {
             flowableEmitter.onNext(url);
         }
         return getDownStatus(url);
@@ -166,15 +165,15 @@ public class RxDownLoad {
         public void onNext(final String url) {
             try {
                 semaphore_prepared.acquire();
-                subscription_prepare.request(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            subscription_prepare.request(1);
                 linkedList.add(url);
                 log("Now is prepareing DownLoad :"+url);
-            } catch (InterruptedException e) {
-                log(e);
-            }
-            downloadHelper.prepare(url)
-                    .subscribe(new Subscriber<DownLoadBean>() {
-                Subscription subscription;
+                downloadHelper.prepare(url)
+               .subscribe(new Subscriber<DownLoadBean>() {
+                   Subscription subscription;
                 @Override
                 public void onSubscribe(Subscription s) {
                     subscription = s;
@@ -220,6 +219,11 @@ public class RxDownLoad {
                                             if (disposableMap.size() > 0) {
                                                 disposableMap.remove(bean.getUrl());
                                             }
+                                        }
+                                    })
+                                    .doOnComplete(new Action() {
+                                        @Override
+                                        public void run() throws Exception {
                                             linkedList.remove(bean.getUrl());
                                         }
                                     })
@@ -278,9 +282,6 @@ public class RxDownLoad {
                                                 @Override
                                                 public void run() throws Exception {
                                                     log("finally download ");
-                                                    if (!isStopAll) {
-                                                        semaphore.release();
-                                                    }
                                                     if (disposableMap.size() > 0) {
                                                         disposableMap.remove(bean.getUrl());
                                                     }
@@ -307,11 +308,7 @@ public class RxDownLoad {
                         public void onComplete() {
                         }
                     });
-            try {
-                semaphore.acquire();
-            }catch (InterruptedException e){
-                log(e);
-            }
+
     }
 
     public void startAll() {
@@ -351,52 +348,51 @@ public class RxDownLoad {
     }
 
     public void delete(String url) {
-        Disposable disposable = disposableMap.get(url);
-        if (disposable != null) {
-            disposable.dispose();
-        }
         if(linkedList.contains(url)){
             linkedList.remove(url);
         }
         downloadHelper.delete(DBManager.getSingleton(context).searchByUrl(url));
+        Disposable disposable = disposableMap.get(url);
+        if (disposable != null) {
+            disposable.dispose();
+        }
     }
 
     public void deleteAll() {
         isStopAll = true;
+        linkedList.clear();
+        downloadHelper.deleteAll();
         if (disposableMap != null) {
             for (Disposable each : disposableMap.values()) {
                 each.dispose();
             }
         }
-        linkedList.clear();
-        downloadHelper.deleteAll();
+
     }
 
     public Observable<DownLoadStatus> getDownStatus(String url) {
         Observable observer = Observable.just(url).flatMap(new Function<String, ObservableSource<DownLoadBean>>() {
             @Override
             public ObservableSource<DownLoadBean> apply(@NonNull String url) throws Exception {
-                return DBManager.getSingleton(context).searchDownloadByUrl(url);
+                return DBManager.getSingleton(context).searchDownloadByUrl(url).throttleFirst(1, TimeUnit.SECONDS);
             }
         }).flatMap(new Function<DownLoadBean, ObservableSource<DownLoadStatus>>() {
             @Override
             public ObservableSource<DownLoadStatus> apply(@NonNull DownLoadBean bean) throws Exception {
                 return Observable.just(bean.getStatus());
             }
-        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread());
+        }) .throttleFirst(1, TimeUnit.SECONDS)
+                .observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread());
         return observer;
     }
 
     public ObservableSource<List<DownLoadBean>> getDownLoading() {
-        return DBManager.getSingleton(context).searchDownloadByAll()
+        return DBManager.getSingleton(context).searchDownloadByAll() .throttleFirst(1, TimeUnit.SECONDS)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
                     @Override
                     public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
-                        List<DownLoadBean> downLoadBeanList = new ArrayList<DownLoadBean>();
-                        for (DownLoadBean bean : downLoadBeen) {
-                                downLoadBeanList.add(bean);
-                        }
-                        return Observable.just(downLoadBeanList);
+                        log("getDownLoading=--->size:"+downLoadBeen.size());
+                        return Observable.just(downLoadBeen);
                     }
                 })
                 .subscribeOn(Schedulers.io())
@@ -404,17 +400,13 @@ public class RxDownLoad {
     }
 
     public ObservableSource<List<DownLoadBean>> getDownLoading(int status) {
-        return DBManager.getSingleton(context).searchStatus(status)
+       final List<DownLoadBean> downLoadBeanList = new ArrayList<DownLoadBean>();
+        return DBManager.getSingleton(context).searchStatus(status) .throttleFirst(1, TimeUnit.SECONDS)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
                     @Override
                     public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
-                        List<DownLoadBean> downLoadBeanList = new ArrayList<DownLoadBean>();
-                        for (DownLoadBean bean : downLoadBeen) {
-                            if (bean.getStatus().getStatus() != DownLoadStatus.COMPLETED) {
-                                downLoadBeanList.add(bean);
-                            }
-                        }
-                        return Observable.just(downLoadBeanList);
+                        log("getDownLoading=--->size:"+downLoadBeen.size());
+                        return Observable.just(downLoadBeen);
                     }
                 });
     }

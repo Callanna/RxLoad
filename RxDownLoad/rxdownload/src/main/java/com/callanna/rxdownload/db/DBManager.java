@@ -165,4 +165,15 @@ public class DBManager {
                 .count().blockingGet();
         return count>0;
     }
+
+    public void clearStatusByUrl(String url) {
+        db.update(Db.DownLoadTable.TABLE_NAME,new DownLoadBean.Builder()
+                        .saveName("")
+                        .savePath("")
+                        .lmfPath("")
+                        .tempPath("")
+                        .downSize(0)
+                        .totalSize(0).build(),
+                Db.DownLoadTable.COLUMN_URL +" = ? ",url);
+    }
 }
