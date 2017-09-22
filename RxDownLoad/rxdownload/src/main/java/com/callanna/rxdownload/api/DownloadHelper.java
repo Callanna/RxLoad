@@ -384,12 +384,21 @@ public class DownloadHelper {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull Response<Void> response) throws Exception {
                         log("accept: checkFile" + response.code());
+                        log("accept: checkFile" + response.code());
                         if (response.code() == 200) {
                             //如果时间一致，那么返回HTTP状态码304,如果 改变了 返回200
-                            delete(bean);
+                            bean.setStatus(new DownLoadStatus(PREPAREING));
+                            dbManager.update(bean);
                             return checkRange(bean);
                         }else{
-                            return Observable.just(bean);
+                            File file = new File(bean.getSavePath());
+                            if(!file.exists()){
+                                bean.setStatus(new DownLoadStatus(PREPAREING));
+                                dbManager.update(bean);
+                                return checkRange(bean);
+                            }else {
+                                return Observable.just(bean);
+                            }
                         }
                     }
                 })

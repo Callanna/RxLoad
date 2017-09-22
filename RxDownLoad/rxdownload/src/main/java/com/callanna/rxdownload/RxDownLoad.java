@@ -37,6 +37,7 @@ import io.reactivex.plugins.RxJavaPlugins;
 import io.reactivex.schedulers.Schedulers;
 
 import static com.callanna.rxdownload.Utils.log;
+import static com.callanna.rxdownload.db.DBManager.getSingleton;
 import static com.callanna.rxdownload.db.DownLoadStatus.NORMAL;
 import static com.callanna.rxdownload.db.DownLoadStatus.PAUSED;
 
@@ -313,7 +314,7 @@ public class RxDownLoad {
 
     public void startAll() {
         isStopAll = false;
-        DBManager.getSingleton(context)
+        getSingleton(context)
                 .searchDownloadByStatus(DownLoadStatus.PAUSED)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<DownLoadBean>>() {
                     @Override
@@ -330,7 +331,7 @@ public class RxDownLoad {
     }
 
     public void pause(String url) {
-        DBManager.getSingleton(context).updateStatusByUrl(url, PAUSED);
+        getSingleton(context).updateStatusByUrl(url, PAUSED);
         Disposable disposable = disposableMap.get(url);
         if (disposable != null) {
             disposable.dispose();
@@ -340,7 +341,7 @@ public class RxDownLoad {
     public void pauseAll() {
         isStopAll = true;
         for (String url : linkedList) {
-            DBManager.getSingleton(context).updateStatusByUrl(url, PAUSED);
+            getSingleton(context).updateStatusByUrl(url, PAUSED);
         }
         for (Disposable each : disposableMap.values()) {
             each.dispose();
@@ -351,7 +352,7 @@ public class RxDownLoad {
         if(linkedList.contains(url)){
             linkedList.remove(url);
         }
-        downloadHelper.delete(DBManager.getSingleton(context).searchByUrl(url));
+        downloadHelper.delete(getSingleton(context).searchByUrl(url));
         Disposable disposable = disposableMap.get(url);
         if (disposable != null) {
             disposable.dispose();
@@ -369,12 +370,17 @@ public class RxDownLoad {
         }
 
     }
-
+    public DownLoadBean getDownLoadBean(String url){
+        return DBManager.getSingleton(context).searchByUrl(url);
+    }
+    public String getDownLoadFilePath(String url){
+        return DBManager.getSingleton(context).searchByUrl(url).getSavePath();
+    }
     public Observable<DownLoadStatus> getDownStatus(String url) {
         Observable observer = Observable.just(url).flatMap(new Function<String, ObservableSource<DownLoadBean>>() {
             @Override
             public ObservableSource<DownLoadBean> apply(@NonNull String url) throws Exception {
-                return DBManager.getSingleton(context).searchDownloadByUrl(url).throttleFirst(1, TimeUnit.SECONDS);
+                return getSingleton(context).searchDownloadByUrl(url).throttleFirst(1, TimeUnit.SECONDS);
             }
         }).flatMap(new Function<DownLoadBean, ObservableSource<DownLoadStatus>>() {
             @Override
@@ -387,7 +393,7 @@ public class RxDownLoad {
     }
 
     public ObservableSource<List<DownLoadBean>> getDownLoading() {
-        return DBManager.getSingleton(context).searchDownloadByAll() .throttleFirst(1, TimeUnit.SECONDS)
+        return getSingleton(context).searchDownloadByAll() .throttleFirst(1, TimeUnit.SECONDS)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
                     @Override
                     public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
@@ -401,7 +407,7 @@ public class RxDownLoad {
 
     public ObservableSource<List<DownLoadBean>> getDownLoading(int status) {
        final List<DownLoadBean> downLoadBeanList = new ArrayList<DownLoadBean>();
-        return DBManager.getSingleton(context).searchStatus(status) .throttleFirst(1, TimeUnit.SECONDS)
+        return getSingleton(context).searchStatus(status) .throttleFirst(1, TimeUnit.SECONDS)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
                     @Override
                     public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
