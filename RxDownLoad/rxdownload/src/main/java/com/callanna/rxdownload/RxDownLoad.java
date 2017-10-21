@@ -2,6 +2,7 @@ package com.callanna.rxdownload;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.util.Log;
 
 import com.callanna.rxdownload.api.DownloadHelper;
 import com.callanna.rxdownload.db.DBManager;
@@ -148,7 +149,9 @@ public class RxDownLoad {
     private Flowable<String> flowable;
     private FlowableEmitter<String> flowableEmitter ;
     public synchronized Observable<DownLoadStatus> download(final String url) {
+        Log.d("duanyl", "download: ");
         if(flowableEmitter!= null) {
+            Log.d("duanyl", "download: 2");
             flowableEmitter.onNext(url);
         }
         return getDownStatus(url);
@@ -158,12 +161,14 @@ public class RxDownLoad {
         Subscription subscription_prepare;
         @Override
         public void onSubscribe(Subscription s) {
+            Log.d("duanyl", "onSubscribe: ");
             subscription_prepare = s;
             subscription_prepare.request(1);
         }
 
         @Override
         public void onNext(final String url) {
+            Log.d("duanyl", "onNext: "+url);
             try {
                 semaphore_prepared.acquire();
             } catch (InterruptedException e) {
@@ -247,7 +252,7 @@ public class RxDownLoad {
                 }
                 @Override
                 public void onComplete() {
-                    log(" prepared DownLoad :"+url);
+                    log(" prepared onComplete" );
                 }
             });
 

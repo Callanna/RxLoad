@@ -52,7 +52,6 @@ public class FileHelper {
 
     public void prepareDownload(File lastModifyFile, File saveFile, long fileLength )
             throws IOException, ParseException {
-
         writeLastModify(lastModifyFile);
         prepareFile(saveFile, fileLength);
     }
@@ -80,10 +79,13 @@ public class FileHelper {
                 while ((readLen = inputStream.read(buffer)) != -1 && !emitter.isCancelled()) {
                     outputStream.write(buffer, 0, readLen);
                     downloadSize += readLen;
+                    Log.d("duanyl", "DownloadSize: "+downloadSize);
                     status.setDownloadSize(downloadSize);
                     emitter.onNext(status);
                 }
-
+                if(status.getDownloadSize() == contentLength){
+                    status.setStatus(DownLoadStatus.COMPLETED);
+                }
                 outputStream.flush(); // This is important!!!
                 emitter.onComplete();
             } finally {
@@ -164,6 +166,7 @@ public class FileHelper {
                     emitter.onNext(status);
                 }
                 emitter.onComplete();
+
             } finally {
                 closeQuietly(record);
                 closeQuietly(recordChannel);
@@ -305,7 +308,6 @@ public class FileHelper {
 
     private void writeLastModify(File file )
             throws IOException, ParseException {
-
         RandomAccessFile record = null;
         try {
             record = new RandomAccessFile(file, ACCESS);

@@ -1,6 +1,6 @@
 package com.callanna.rxdownload.api;
 
-import com.callanna.rxdownload.BuildConfig;
+import com.callanna.rxdownload.Utils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -52,7 +52,7 @@ public class RetrofitProvider {
             builder.readTimeout(10, TimeUnit.SECONDS);
             builder.connectTimeout(9, TimeUnit.SECONDS);
             builder.addNetworkInterceptor(new HttpLoggingInterceptor());
-            if (BuildConfig.DEBUG) {
+            if (Utils.DEBUG) {
                 HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
                 interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
                 builder.addInterceptor(interceptor);

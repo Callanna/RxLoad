@@ -49,7 +49,7 @@ public class Utils {
     public static final String NORMAL_RETRY_HINT = "Normal download";
     public static final String RANGE_RETRY_HINT = "Range %d";
     public static final String RETRY_HINT = "%s get [%s] error, now retry [%d] times";
-    private static boolean DEBUG = true;
+    public static boolean DEBUG = true;
 
     public static void setDebug(boolean flag) {
         DEBUG = flag;
@@ -63,15 +63,15 @@ public class Utils {
     }
 
     public static void log(String message, Object... args) {
-        log(format(getDefault(), message, args));
+        log(format(getDefault(), message+": %s", args));
     }
 
     public static void log(Throwable throwable) {
-        Log.w(TAG, throwable);
+        Log.e(TAG, throwable.getMessage());
     }
 
     public static String formatStr(String str, Object... args) {
-        return format(getDefault(), str, args);
+        return format(getDefault(), str+"  %s", args);
     }
 
     public static boolean empty(String string) {
@@ -266,6 +266,10 @@ public class Utils {
             }
             return false;
         } else {
+            if (integer < maxRetryCount + 1) {
+                log(RETRY_HINT, hint, " Exception", integer);
+                return true;
+            }
             return false;
         }
     }

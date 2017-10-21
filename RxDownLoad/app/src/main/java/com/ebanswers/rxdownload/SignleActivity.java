@@ -2,9 +2,8 @@ package com.ebanswers.rxdownload;
 
 import android.content.Context;
 import android.content.Intent;
-import android.support.v4.app.SupportActivity;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -14,7 +13,6 @@ import com.callanna.rxdownload.RxDownLoad;
 import com.callanna.rxdownload.db.DownLoadStatus;
 
 import io.reactivex.annotations.NonNull;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 
 public class SignleActivity extends AppCompatActivity implements View.OnClickListener {
@@ -42,7 +40,7 @@ public class SignleActivity extends AppCompatActivity implements View.OnClickLis
         btn_delete.setOnClickListener(this);
     }
     private void todownload() {
-        RxDownLoad.init(SignleActivity.this)
+        RxDownLoad.getInstance()
                 .download(url)
                 .subscribe(new Consumer<DownLoadStatus>() {
                     @Override

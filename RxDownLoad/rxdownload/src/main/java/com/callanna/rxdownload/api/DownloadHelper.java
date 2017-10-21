@@ -37,12 +37,8 @@ import retrofit2.Retrofit;
 
 import static android.os.Environment.DIRECTORY_DOWNLOADS;
 import static android.os.Environment.getExternalStoragePublicDirectory;
-import static com.callanna.rxdownload.Utils.NORMAL_RETRY_HINT;
-import static com.callanna.rxdownload.Utils.RANGE_RETRY_HINT;
-import static com.callanna.rxdownload.Utils.REQUEST_RETRY_HINT;
 import static com.callanna.rxdownload.Utils.empty;
 import static com.callanna.rxdownload.Utils.fileName;
-import static com.callanna.rxdownload.Utils.formatStr;
 import static com.callanna.rxdownload.Utils.log;
 import static com.callanna.rxdownload.Utils.mkdirs;
 import static com.callanna.rxdownload.db.DownLoadStatus.COMPLETED;
@@ -187,7 +183,8 @@ public class DownloadHelper {
                     public Publisher<DownLoadStatus> apply(final Response<ResponseBody> response) throws Exception {
                         return save(path,"",-1,response.body());
                     }
-                }).compose(Utils.<DownLoadStatus>retry2(NORMAL_RETRY_HINT,maxRetryCount));
+                });
+                //.compose(Utils.<DownLoadStatus>retry2(NORMAL_RETRY_HINT,maxRetryCount));
     }
 
     /**
@@ -223,8 +220,8 @@ public class DownloadHelper {
                         return save(bean.getSavePath(),bean.getTempPath(),index, response.body());
                     }
                 })
-                .subscribeOn(Schedulers.io())  //Important!;
-                .compose(Utils.<DownLoadStatus>retry2(formatStr(RANGE_RETRY_HINT, index),maxRetryCount));
+                .subscribeOn(Schedulers.io()) ; //Important!;
+                //.compose(Utils.<DownLoadStatus>retry2(formatStr(RANGE_RETRY_HINT, index),maxRetryCount));
 
     }
 
@@ -246,10 +243,11 @@ public class DownloadHelper {
                     save(emitter,path,tpath, index, response);
                 }
             }
-        }, BackpressureStrategy.LATEST)
+        }, BackpressureStrategy.ERROR)
                 .replay(1)
                 .autoConnect();
-        return flowable.throttleFirst(200, TimeUnit.MILLISECONDS).mergeWith(flowable.takeLast(1))
+        return flowable
+                //.throttleFirst(200, TimeUnit.MILLISECONDS).mergeWith(flowable.takeLast(1))
                 .subscribeOn(Schedulers.newThread());
     }
     public Flowable<DownLoadBean> prepare(final String url) {
@@ -354,6 +352,7 @@ public class DownloadHelper {
                 .flatMap(new Function<Response<Void>, ObservableSource<DownLoadBean>>() {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull Response<Void> response) throws Exception {
+                        Log.d("duanyl", "checkRange apply: ");
                         if (response.isSuccessful()) {
                             saveFileInfo(bean, response, PREPAREING);
                             bean.setIsSupportRange(!Utils.notSupportRange(response));
@@ -364,13 +363,15 @@ public class DownloadHelper {
                         }
                         return Observable.just(bean);
                     }
-                }).doOnError(new Consumer<Throwable>() {
+                })
+                .doOnError(new Consumer<Throwable>() {
                     @Override
                     public void accept(@NonNull Throwable throwable) throws Exception {
                         throwable.printStackTrace();
+                        log(throwable);
                     }
-                })
-                .compose(Utils.<DownLoadBean>retry(formatStr(REQUEST_RETRY_HINT),maxRetryCount));
+                });
+                //.compose(Utils.<DownLoadBean>retry(formatStr(REQUEST_RETRY_HINT),maxRetryCount));
     }
 
     /**
@@ -403,8 +404,8 @@ public class DownloadHelper {
                     }
                 })
                 .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.newThread())
-                .compose(Utils.<DownLoadBean>retry(formatStr(REQUEST_RETRY_HINT),maxRetryCount));
+                .observeOn(Schedulers.newThread());
+                //.compose(Utils.<DownLoadBean>retry(formatStr(REQUEST_RETRY_HINT),maxRetryCount));
 
     }
 
