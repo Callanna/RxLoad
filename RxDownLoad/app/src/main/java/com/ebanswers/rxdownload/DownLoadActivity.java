@@ -100,17 +100,30 @@ public class DownLoadActivity extends AppCompatActivity {
                     helper.setText(R.id.tv_progress_status, downLoadStatus.getStringStatus())
                             .setText(R.id.tv_progress_size, downLoadStatus.getFormatStatusString())
                             .setProgress(R.id.progress, (int) downLoadStatus.getPercentNumber());
-                    if (downLoadStatus.getStatus() == DownLoadStatus.PAUSED) {
-                        helper.setText(R.id.btn_start, "继续");
-                    } else if (downLoadStatus.getStatus() == DownLoadStatus.STARTED) {
-                        helper.setText(R.id.btn_start, "暂停");
+                    switch (downLoadStatus.getStatus()) {
+                        case DownLoadStatus.NORMAL:
+                        case DownLoadStatus.PREPAREING:
+                        case DownLoadStatus.WAITING:
+                        case DownLoadStatus.STARTED:
+                            helper.setText(R.id.btn_delete, "取消");
+                            helper.setText(R.id.btn_start, "暂停");
+                            helper.setVisible(R.id.btn_start, true);
+                            break;
+                        case DownLoadStatus.PAUSED:
+                            helper.setVisible(R.id.btn_start, true);
+                            helper.setText(R.id.btn_delete, "取消");
+                            helper.setText(R.id.btn_start, "继续");
+                            break;
+                        case DownLoadStatus.COMPLETED:
+                            helper.setVisible(R.id.btn_start, false);
+                            helper.setVisible(R.id.btn_delete,false);
+                            break;
+                        case DownLoadStatus.FAILED:
+                            helper.setVisible(R.id.btn_delete,true);
+                            helper.setVisible(R.id.btn_start, false);
+                            helper.setText(R.id.btn_delete, "下载");
+                            break;
                     }
-                    if (downLoadStatus.getStatus() > DownLoadStatus.PAUSED) {
-                        helper.setText(R.id.btn_delete, "下载");
-                    } else {
-                        helper.setText(R.id.btn_delete, "取消");
-                    }
-
                 }
             });
         }

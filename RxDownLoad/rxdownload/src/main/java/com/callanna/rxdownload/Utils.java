@@ -45,8 +45,8 @@ public class Utils {
     private static final CharSequence CACHE = ".cache";
     private static final CharSequence TMP_SUFFIX = ".tmp";
     private static final CharSequence LMF_SUFFIX = ".lmf";
-    public static final String REQUEST_RETRY_HINT = "Request";
-    public static final String NORMAL_RETRY_HINT = "Normal download";
+    public static final String REQUEST_RETRY_HINT = "Request ";
+    public static final String NORMAL_RETRY_HINT = "Normal download ";
     public static final String RANGE_RETRY_HINT = "Range %d";
     public static final String RETRY_HINT = "%s get [%s] error, now retry [%d] times";
     public static boolean DEBUG = true;
@@ -63,7 +63,7 @@ public class Utils {
     }
 
     public static void log(String message, Object... args) {
-        log(format(getDefault(), message+": %s", args));
+        log(format(getDefault(), message , args));
     }
 
     public static void log(Throwable throwable) {
@@ -71,7 +71,7 @@ public class Utils {
     }
 
     public static String formatStr(String str, Object... args) {
-        return format(getDefault(), str+"  %s", args);
+        return format(getDefault(), str, args);
     }
 
     public static boolean empty(String string) {

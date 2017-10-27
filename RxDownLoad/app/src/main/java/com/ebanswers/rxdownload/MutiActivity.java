@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.format.DateUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -13,11 +14,14 @@ import com.callanna.rxdownload.db.DownLoadBean;
 import com.callanna.rxdownload.db.DownLoadStatus;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import io.reactivex.Observer;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
+
+import static com.callanna.rxdownload.Utils.log;
 
 public class MutiActivity extends AppCompatActivity implements View.OnClickListener {
     private Button btn_download,btn_stop,btn_delete,btn_progress;
@@ -41,6 +45,7 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
         btn_delete.setOnClickListener(this);
         btn_progress.setOnClickListener(this);
         initData();
+         
         RxDownLoad.getInstance().getDownLoading().subscribe(new Observer<List<DownLoadBean>>() {
             @Override
             public void onSubscribe(@NonNull Disposable d) {
@@ -71,6 +76,7 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
                             break;
                     }
                 }
+                log("等待中:"+waiting+",下载中："+starting+"" +"已暂停："+pause+",已完成："+comeplete+"，下载失败："+fail);
                 tv_download.setText("等待中："+waiting+",下载中："+starting+"\n" +
                         "已暂停："+pause+",已完成："+comeplete+"，下载失败："+fail);
             }
@@ -89,7 +95,7 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
     private List<AppInfo> appInfoList ;
     private void initData(){
         if(appInfoList == null){
-            appInfoList = new ArrayList<>();
+            appInfoList = new LinkedList<>();
         }
         appInfoList.add(new AppInfo("悦动圈","http://f2.market.xiaomi.com/download/AppStore/0fdde45866fcb4d662db1f504b9bb482423d44d3f/com.yuedong.sport.apk",R.mipmap.a1));
         appInfoList.add(new AppInfo("爱奇艺","http://f1.market.xiaomi.com/download/AppStore/0dec385a7f95248ac3f2a63405581b9d5fae8c328/com.qiyi.video.apk",R.mipmap.a2));

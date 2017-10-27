@@ -19,7 +19,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
  */
 public class RetrofitProvider {
 
-    private static String ENDPOINT = "http://example.com/api/";
+    private static String ENDPOINT = "https://github.com/Callanna/";
 
     private RetrofitProvider() {
     }
@@ -49,12 +49,12 @@ public class RetrofitProvider {
 
         private static Retrofit create() {
             OkHttpClient.Builder builder = new OkHttpClient().newBuilder();
-            builder.readTimeout(10, TimeUnit.SECONDS);
-            builder.connectTimeout(9, TimeUnit.SECONDS);
+            builder.readTimeout(5, TimeUnit.SECONDS);
+            builder.connectTimeout(5, TimeUnit.SECONDS);
             builder.addNetworkInterceptor(new HttpLoggingInterceptor());
             if (Utils.DEBUG) {
                 HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-                interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+                interceptor.setLevel(HttpLoggingInterceptor.Level.BASIC);
                 builder.addInterceptor(interceptor);
             }
 

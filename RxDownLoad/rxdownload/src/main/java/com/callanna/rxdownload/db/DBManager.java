@@ -2,14 +2,23 @@ package com.callanna.rxdownload.db;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.os.SystemClock;
+import android.util.Log;
 
+import com.callanna.rxdownload.Utils;
 import com.squareup.sqlbrite2.BriteDatabase;
 import com.squareup.sqlbrite2.SqlBrite;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.ObservableSource;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 import static com.callanna.rxdownload.Utils.log;
@@ -40,7 +49,7 @@ public class DBManager {
         sqlBrite =  new SqlBrite.Builder()
                 .logger(new SqlBrite.Logger() {
                     @Override public void log(String message) {
-                        log("DataBase   "+message);
+                        Log.d("RxDownLoad", "DataBase  "+message);
                     }
                 })
                 .build();
@@ -60,17 +69,14 @@ public class DBManager {
     }
 
     public synchronized Observable<List<DownLoadBean>> searchDownloadByAll(){
-        log("DataBase", "searchDownloadByAll: ");
        return db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_ALL)
                 .mapToList(DownLoadBean.MAPPER);
     }
     public synchronized Observable<List<DownLoadBean>>  searchStatus(int status) {
-        log("DataBase", "searchStatus: ");
         return db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_STATUS, String.valueOf(status))
-                .mapToList(DownLoadBean.MAPPER);
+                .mapToList(DownLoadBean.MAPPER) ;
     }
     public synchronized Observable<List<DownLoadBean>>  searchDownloadByStatus(int status){
-        log("DataBase", "searchByUrl: ");
         List<DownLoadBean> downLoadBeanList = new LinkedList<>();
         Cursor cursor = db.query(QUERY_STATUS,status+"");
         while (cursor.moveToNext()){
@@ -96,16 +102,15 @@ public class DBManager {
         return   Observable.just(downLoadBeanList);
     }
     public synchronized Observable<DownLoadBean>  searchDownloadByUrl(String url){
-        log("DataBase", "searchDownloadByUrl: ");
         return  db.createQuery(Db.DownLoadTable.TABLE_NAME,QUERY_URL,url)
-                .mapToOneOrDefault(DownLoadBean.MAPPER,new DownLoadBean(url));
+                .mapToOneOrDefault(DownLoadBean.MAPPER,new DownLoadBean(url)) ;
     }
     public synchronized DownLoadBean  searchByUrl(String url){
-        log("DataBase", "searchByUrl: ");
-        DownLoadBean downLoadBean = new DownLoadBean(url);
-        DownLoadStatus downLoadStatus = new DownLoadStatus();
+        DownLoadBean downLoadBean = null;
         Cursor cursor = db.query(QUERY_URL,url);
         if(cursor.getCount() >0){
+            downLoadBean = new DownLoadBean(url);
+            DownLoadStatus downLoadStatus = new DownLoadStatus();
             cursor.moveToFirst();
             downLoadBean.setId(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_ID)));
             downLoadStatus.setStatus(cursor.getInt(cursor.getColumnIndex(Db.DownLoadTable.COLUMN_DOWNLOAD_FLAG)));
@@ -137,41 +142,42 @@ public class DBManager {
        db.insert(Db.DownLoadTable.TABLE_NAME,new DownLoadBean.Builder().get(bean).build());
     }
 
-    public void update(DownLoadBean bean){
+    public synchronized void update(DownLoadBean bean){
         db.update(Db.DownLoadTable.TABLE_NAME,new DownLoadBean.Builder().get(bean).build(),
                 Db.DownLoadTable.COLUMN_ID +" = ? ", String.valueOf(bean.getId()));
     }
-    public void updateStatusByUrl(String url, int flag){
+    public synchronized void updateStatusByUrl(String url, int flag){
         db.update(Db.DownLoadTable.TABLE_NAME,new DownLoadBean.Builder().status(flag).build(),
                 Db.DownLoadTable.COLUMN_URL +" = ? ",url);
     }
-    public void updateStatusByUrl(String url, DownLoadStatus flag){
+    public synchronized void updateStatusByUrl(String url, DownLoadStatus flag){
         db.update(Db.DownLoadTable.TABLE_NAME,new DownLoadBean.Builder()
                         .status(flag.getStatus())
                         .downSize((int) flag.getDownloadSize())
                         .totalSize((int) flag.getTotalSize()).build(),
                 Db.DownLoadTable.COLUMN_URL +" = ? ",url);
     }
-    public void delete(String url){
+    public synchronized void delete(String url){
         db.delete(Db.DownLoadTable.TABLE_NAME, Db.DownLoadTable.COLUMN_URL +" = ? ",url);
     }
 
-    public void deleteWaiting(){
+    public synchronized void deleteWaiting(){
         db.delete(Db.DownLoadTable.TABLE_NAME, Db.DownLoadTable.COLUMN_DOWNLOAD_FLAG +" != ? ", String.valueOf(DownLoadStatus.COMPLETED));
     }
 
-    public boolean recordNotExists(String url) {
+    public synchronized boolean recordNotExists(String url) {
        Long count = searchDownloadByUrl(url).observeOn(Schedulers.newThread())
                 .count().blockingGet();
         return count>0;
     }
 
-    public void clearStatusByUrl(String url) {
+    public synchronized void clearStatusByUrl(String url) {
         db.update(Db.DownLoadTable.TABLE_NAME,new DownLoadBean.Builder()
                         .saveName("")
                         .savePath("")
                         .lmfPath("")
                         .tempPath("")
+                        .status(0)
                         .downSize(0)
                         .totalSize(0).build(),
                 Db.DownLoadTable.COLUMN_URL +" = ? ",url);

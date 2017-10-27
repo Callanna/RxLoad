@@ -13,6 +13,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import java.io.InterruptedIOException;
+import java.lang.ref.WeakReference;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -27,6 +28,8 @@ import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
@@ -47,9 +50,23 @@ import static com.callanna.rxdownload.db.DownLoadStatus.PAUSED;
  */
 
 public class RxDownLoad {
-    private static final Object object = new Object();
+    private WeakReference<Context> context;
+    private static Semaphore semaphore, semaphore_prepared;
+    private static DownloadHelper downloadHelper;
+    private static Flowable<DownLoadBean> flowable;
+    private static FlowableEmitter<DownLoadBean> flowableEmitter;
+    private static Map<String, Disposable> disposableMap;
+
+    private static List<String> linkedList = new LinkedList();
+
+    private static boolean isStopAll = false;
+
+
+    private int maxDownloadNumber = 1;
+
     @SuppressLint("StaticFieldLeak")
     private volatile static RxDownLoad instance;
+
     static {
         RxJavaPlugins.setErrorHandler(new Consumer<Throwable>() {
             @Override
@@ -65,35 +82,36 @@ public class RxDownLoad {
         });
     }
 
-    private int maxDownloadNumber = 1;
-
-    private Context context;
-    private Semaphore semaphore,semaphore_prepared;
-    private DownloadHelper downloadHelper;
-
     private RxDownLoad(Context context) {
-        this.context = context.getApplicationContext();
+        this.context = new WeakReference<Context>(context.getApplicationContext());
+
         downloadHelper = new DownloadHelper(context);
         disposableMap = new ConcurrentHashMap<>();
         semaphore = new Semaphore(maxDownloadNumber);
         semaphore_prepared = new Semaphore(1);
-        flowable = Flowable.create(new FlowableOnSubscribe<String>() {
-            @Override
-            public void subscribe(@NonNull FlowableEmitter<String> e) throws Exception {
-                flowableEmitter = e;
-            }
-        }, BackpressureStrategy.ERROR);
-        flowable.subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.newThread()).subscribe(subscriber_prepare);
+        if (flowable == null) {
+
+            flowable = Flowable.create(new FlowableOnSubscribe<DownLoadBean>() {
+                @Override
+                public void subscribe(@NonNull FlowableEmitter<DownLoadBean> e) throws Exception {
+                    flowableEmitter = e;
+                }
+            }, BackpressureStrategy.ERROR);
+
+            flowable.subscribeOn(Schedulers.io())
+                    .observeOn(Schedulers.newThread()).subscribe(subscriber_prepare);
+        }
     }
 
     public static RxDownLoad init(Context context) {
-        instance = new RxDownLoad(context);
+        if (instance == null) {
+            instance = new RxDownLoad(context);
+        }
         Utils.setDebug(true);
         return instance;
     }
 
-    public static RxDownLoad init(Context context,boolean isdebug) {
+    public static RxDownLoad init(Context context, boolean isdebug) {
         instance = new RxDownLoad(context);
         Utils.setDebug(isdebug);
         return instance;
@@ -142,184 +160,161 @@ public class RxDownLoad {
         semaphore = new Semaphore(maxDownloadNumber);
         return this;
     }
-
-    private Map<String, Disposable> disposableMap;
-    private boolean isStopAll = false;
-    private  List<String> linkedList = new LinkedList();
-    private Flowable<String> flowable;
-    private FlowableEmitter<String> flowableEmitter ;
-    public synchronized Observable<DownLoadStatus> download(final String url) {
-        Log.d("duanyl", "download: ");
-        if(flowableEmitter!= null) {
-            Log.d("duanyl", "download: 2");
-            flowableEmitter.onNext(url);
-        }
-        return getDownStatus(url);
-
-    }
-    Subscriber<String> subscriber_prepare = new Subscriber<String>() {
-        Subscription subscription_prepare;
-        @Override
-        public void onSubscribe(Subscription s) {
-            Log.d("duanyl", "onSubscribe: ");
-            subscription_prepare = s;
-            subscription_prepare.request(1);
-        }
-
-        @Override
-        public void onNext(final String url) {
-            Log.d("duanyl", "onNext: "+url);
-            try {
-                semaphore_prepared.acquire();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            subscription_prepare.request(1);
-                linkedList.add(url);
-                log("Now is prepareing DownLoad :"+url);
-                downloadHelper.prepare(url)
-               .subscribe(new Subscriber<DownLoadBean>() {
-                   Subscription subscription;
-                @Override
-                public void onSubscribe(Subscription s) {
-                    subscription = s;
-                    subscription.request(1);
-                }
-
-                @Override
-                public void onNext(final DownLoadBean bean) {
-                    semaphore_prepared.release();
-                    if (isStopAll) {
-                        subscription.cancel();
-                    }else {
-                        try {
-                            semaphore.acquire();
-                            if (isStopAll) {
-                                subscription.cancel();
-                                semaphore.release();
-                                return;
-                            }
-                            if(!linkedList.contains(bean.getUrl())){
-                                semaphore.release();
-                                return;
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        if (bean.getStatus().getStatus() != NORMAL) {
-                            log("Now is  DownLoading :"+bean.getUrl());
-                            Disposable disposable = Observable.just(1).flatMap(new Function<Integer, ObservableSource<DownLoadStatus>>() {
-                                @Override
-                                public ObservableSource<DownLoadStatus> apply(@NonNull Integer integer) throws Exception {
-                                    return downloadHelper.startDownLoad(bean);
-                                }
-                            }).observeOn(Schedulers.io())
-                                    .subscribeOn(Schedulers.newThread())
-                                    .doFinally(new Action() {
-                                        @Override
-                                        public void run() throws Exception {
-                                            log("finally  download");
-                                            if (!isStopAll) {
-                                                semaphore.release();
-                                            }
-                                            if (disposableMap.size() > 0) {
-                                                disposableMap.remove(bean.getUrl());
-                                            }
-                                        }
-                                    })
-                                    .doOnComplete(new Action() {
-                                        @Override
-                                        public void run() throws Exception {
-                                            linkedList.remove(bean.getUrl());
-                                        }
-                                    })
-                                    .doOnError(new Consumer<Throwable>() {
-                                        @Override
-                                        public void accept(@NonNull Throwable throwable) throws Exception {
-                                            log( throwable );
-                                        }
-                                    }).subscribe();
-
-                            disposableMap.put(bean.getUrl(), disposable);
-                        }
+    public synchronized void download(List<String> urls) {
+        Observable.fromArray(urls)
+                .flatMap(new Function<List<String>, ObservableSource<?>>() {
+                    @Override
+                    public ObservableSource<?> apply(@NonNull List<String> strings) throws Exception {
+                        return null;
                     }
+                })
+         download(url,"");
+    }
 
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    log(t);
-                }
-                @Override
-                public void onComplete() {
-                    log(" prepared onComplete" );
-                }
-            });
-
-        }
-
-        @Override
-        public void onError(Throwable t) {
-        }
-        @Override
-        public void onComplete() {
-        }
-    };
-
-    public void start(String url){
-        linkedList.add(url);
-            downloadHelper.prepare(url)
+    public synchronized Observable<DownLoadStatus> download(final String url) {
+        return download(url,"");
+    }
+    public synchronized Observable<DownLoadStatus> download(final String url,String filename) {
+        if (flowableEmitter != null) {
+            log("onNext: 1");
+            linkedList.add(url);
+            downloadHelper.prepare(url,filename == null?"":filename)
                     .subscribe(new Subscriber<DownLoadBean>() {
+                        Subscription subscription;
+
                         @Override
                         public void onSubscribe(Subscription s) {
-                            s.request(1);
+                            subscription = s;
+                            subscription.request(1);
                         }
+
                         @Override
                         public void onNext(final DownLoadBean bean) {
-                                if (bean.getStatus().getStatus() != NORMAL) {
-                                    Disposable disposable = Observable.just(1).flatMap(new Function<Integer, ObservableSource<DownLoadStatus>>() {
-                                        @Override
-                                        public ObservableSource<DownLoadStatus> apply(@NonNull Integer integer) throws Exception {
-                                            return downloadHelper.startDownLoad(bean);
-                                        }
-                                    }).observeOn(Schedulers.io())
-                                            .subscribeOn(Schedulers.newThread())
-                                            .doFinally(new Action() {
-                                                @Override
-                                                public void run() throws Exception {
-                                                    log("finally download ");
-                                                    if (disposableMap.size() > 0) {
-                                                        disposableMap.remove(bean.getUrl());
-                                                    }
-                                                    linkedList.remove(bean.getUrl());
-                                                }
-                                            })
-                                            .doOnError(new Consumer<Throwable>() {
-                                                @Override
-                                                public void accept(@NonNull Throwable throwable) throws Exception {
-                                                    log(throwable);
-                                                }
-                                            }).subscribe();
-                                    disposableMap.put(bean.getUrl(), disposable);
-                                }
-
+                            flowableEmitter.onNext(bean);
                         }
 
                         @Override
                         public void onError(Throwable t) {
                             log(t);
+                            log(" prepared onError");
                         }
 
                         @Override
                         public void onComplete() {
-                        }
-                    });
+                            log(" prepared onComplete");
 
+                        }
+
+                    });
+        }
+        return getDownStatus(url);
+
+    }
+
+    static Subscriber<DownLoadBean> subscriber_prepare = new Subscriber<DownLoadBean>() {
+        Subscription subscription;
+
+        @Override
+        public void onSubscribe(Subscription s) {
+            subscription  = s;
+            subscription .request(1);
+        }
+
+        @Override
+        public void onNext(final DownLoadBean bean) {
+            log("onNext: 2");
+            if (isStopAll) {
+                subscription.cancel();
+            } else {
+                    log("Now is  DownLoading :" + bean.getUrl());
+                    Disposable disposable = Observable.just(1)
+                            .flatMap(new Function<Integer, ObservableSource<DownLoadStatus>>() {
+                                @Override
+                                public ObservableSource<DownLoadStatus> apply(@NonNull Integer integer) throws Exception {
+                                    return downloadHelper.startDownLoad(bean);
+                                }
+                            })
+                            .observeOn(Schedulers.io())
+                            .subscribeOn(Schedulers.newThread())
+                            .doOnComplete(new Action() {
+                                @Override
+                                public void run() throws Exception {
+                                    linkedList.remove(bean.getUrl());
+                                }
+                            })
+                            .doOnError(new Consumer<Throwable>() {
+                                @Override
+                                public void accept(@NonNull Throwable throwable) throws Exception {
+                                    log(throwable);
+                                }
+                            })
+                            .doFinally(new Action() {
+                                @Override
+                                public void run() throws Exception {
+                                    //下载结束，请求下一个下载任务
+                                    subscription.request(1);
+                                    log("finally  download");
+                                    if (!isStopAll) {
+                                        semaphore.release();
+                                    }
+                                    if (disposableMap.size() > 0) {
+                                        disposableMap.remove(bean.getUrl());
+                                    }
+                                }
+                            }).subscribe();
+
+                    disposableMap.put(bean.getUrl(), disposable);
+                }
+        }
+
+        @Override
+        public void onError(Throwable t) {
+        }
+
+        @Override
+        public void onComplete() {
+        }
+    };
+
+    public void start(String url) {
+        linkedList.add(url);
+        if (flowableEmitter != null) {
+            log("onNext: 1");
+            linkedList.add(url);
+            downloadHelper.prepare(url,"")
+                    .subscribe(new Subscriber<DownLoadBean>() {
+                        Subscription subscription;
+
+                        @Override
+                        public void onSubscribe(Subscription s) {
+                            subscription = s;
+                            subscription.request(1);
+                        }
+
+                        @Override
+                        public void onNext(final DownLoadBean bean) {
+                            flowableEmitter.onNext(bean);
+                        }
+
+                        @Override
+                        public void onError(Throwable t) {
+                            log(t);
+                            log(" prepared onError");
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            log(" prepared onComplete");
+
+                        }
+
+                    });
+        }
     }
 
     public void startAll() {
         isStopAll = false;
-        getSingleton(context)
+        getSingleton(context.get())
                 .searchDownloadByStatus(DownLoadStatus.PAUSED)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<DownLoadBean>>() {
                     @Override
@@ -336,7 +331,7 @@ public class RxDownLoad {
     }
 
     public void pause(String url) {
-        getSingleton(context).updateStatusByUrl(url, PAUSED);
+        getSingleton(context.get()).updateStatusByUrl(url, PAUSED);
         Disposable disposable = disposableMap.get(url);
         if (disposable != null) {
             disposable.dispose();
@@ -346,7 +341,7 @@ public class RxDownLoad {
     public void pauseAll() {
         isStopAll = true;
         for (String url : linkedList) {
-            getSingleton(context).updateStatusByUrl(url, PAUSED);
+            getSingleton(context.get()).updateStatusByUrl(url, PAUSED);
         }
         for (Disposable each : disposableMap.values()) {
             each.dispose();
@@ -354,10 +349,10 @@ public class RxDownLoad {
     }
 
     public void delete(String url) {
-        if(linkedList.contains(url)){
+        if (linkedList.contains(url)) {
             linkedList.remove(url);
         }
-        downloadHelper.delete(getSingleton(context).searchByUrl(url));
+        downloadHelper.delete(getSingleton(context.get()).searchByUrl(url));
         Disposable disposable = disposableMap.get(url);
         if (disposable != null) {
             disposable.dispose();
@@ -375,34 +370,40 @@ public class RxDownLoad {
         }
 
     }
-    public DownLoadBean getDownLoadBean(String url){
-        return DBManager.getSingleton(context).searchByUrl(url);
+
+    public DownLoadBean getDownLoadBean(String url) {
+        return DBManager.getSingleton(context.get()).searchByUrl(url);
     }
-    public String getDownLoadFilePath(String url){
-        return DBManager.getSingleton(context).searchByUrl(url).getSavePath();
+
+    public String getDownLoadFilePath(String url) {
+        return DBManager.getSingleton(context.get()).searchByUrl(url).getSavePath();
     }
+
     public Observable<DownLoadStatus> getDownStatus(String url) {
-        Observable observer = Observable.just(url).flatMap(new Function<String, ObservableSource<DownLoadBean>>() {
-            @Override
-            public ObservableSource<DownLoadBean> apply(@NonNull String url) throws Exception {
-                return getSingleton(context).searchDownloadByUrl(url).throttleFirst(1, TimeUnit.SECONDS);
-            }
-        }).flatMap(new Function<DownLoadBean, ObservableSource<DownLoadStatus>>() {
-            @Override
-            public ObservableSource<DownLoadStatus> apply(@NonNull DownLoadBean bean) throws Exception {
-                return Observable.just(bean.getStatus());
-            }
-        }) .throttleFirst(1, TimeUnit.SECONDS)
-                .observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread());
+        Observable observer = Observable.just(url)
+                .flatMap(new Function<String, ObservableSource<DownLoadBean>>() {
+                    @Override
+                    public ObservableSource<DownLoadBean> apply(@NonNull String url) throws Exception {
+                        return getSingleton(context.get()).searchDownloadByUrl(url)
+                                .throttleLast(1, TimeUnit.SECONDS);
+                    }
+                })
+                .flatMap(new Function<DownLoadBean, ObservableSource<DownLoadStatus>>() {
+                    @Override
+                    public ObservableSource<DownLoadStatus> apply(@NonNull DownLoadBean bean) throws Exception {
+                        return Observable.just(bean.getStatus());
+                    }
+                }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread());
         return observer;
     }
 
     public ObservableSource<List<DownLoadBean>> getDownLoading() {
-        return getSingleton(context).searchDownloadByAll() .throttleFirst(1, TimeUnit.SECONDS)
+        return getSingleton(context.get()).searchDownloadByAll()
+                .throttleLast(1, TimeUnit.SECONDS)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
                     @Override
                     public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
-                        log("getDownLoading=--->size:"+downLoadBeen.size());
+                        log("getDownLoading=--->size:" + downLoadBeen.size());
                         return Observable.just(downLoadBeen);
                     }
                 })
@@ -411,15 +412,31 @@ public class RxDownLoad {
     }
 
     public ObservableSource<List<DownLoadBean>> getDownLoading(int status) {
-       final List<DownLoadBean> downLoadBeanList = new ArrayList<DownLoadBean>();
-        return getSingleton(context).searchStatus(status) .throttleFirst(1, TimeUnit.SECONDS)
+        final List<DownLoadBean> downLoadBeanList = new ArrayList<DownLoadBean>();
+        return getSingleton(context.get()).searchStatus(status)
+                .throttleLast(1, TimeUnit.SECONDS)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
                     @Override
                     public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
-                        log("getDownLoading=--->size:"+downLoadBeen.size());
+                        log("getDownLoading=--->size:" + downLoadBeen.size());
                         return Observable.just(downLoadBeen);
                     }
                 });
     }
 
+    public static void release() {
+        if (instance != null) {
+            linkedList.clear();
+            isStopAll = false;
+            semaphore.release();
+            semaphore_prepared.release();
+            semaphore = null;
+            semaphore_prepared = null;
+            downloadHelper = null;
+            subscriber_prepare.onComplete();
+            flowable = null;
+            flowableEmitter = null;
+            disposableMap = null;
+        }
+    }
 }

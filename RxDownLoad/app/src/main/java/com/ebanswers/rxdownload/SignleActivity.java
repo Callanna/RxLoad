@@ -38,17 +38,28 @@ public class SignleActivity extends AppCompatActivity implements View.OnClickLis
         btn_download.setOnClickListener(this);
         btn_stop.setOnClickListener(this);
         btn_delete.setOnClickListener(this);
+        if(RxDownLoad.getInstance().getDownLoadBean(url) != null) {
+            RxDownLoad.getInstance().getDownStatus(url).subscribe(
+                    new Consumer<DownLoadStatus>() {
+                        @Override
+                        public void accept(@NonNull DownLoadStatus downLoadStatus) throws Exception {
+                            Log.d("duanyl", "onNext: flag:" + downLoadStatus.getStatus() + ",-->" + downLoadStatus.getFormatDownloadSize() + ",percent ：" + downLoadStatus.getPercentNumber());
+                            tv_download.setText(downLoadStatus.getStringStatus() + ",   " + downLoadStatus.getFormatStatusString() + "    ,下载进度：" + downLoadStatus.getPercent());
+                        }
+                    }
+            );
+        }
     }
     private void todownload() {
-        RxDownLoad.getInstance()
-                .download(url)
-                .subscribe(new Consumer<DownLoadStatus>() {
+        RxDownLoad.getInstance().download(url).subscribe(
+                new Consumer<DownLoadStatus>() {
                     @Override
                     public void accept(@NonNull DownLoadStatus downLoadStatus) throws Exception {
-                        Log.d("duanyl", "onNext: flag:"+downLoadStatus.getStatus()+",-->"+downLoadStatus.getFormatDownloadSize() + ",percent ："+downLoadStatus.getPercentNumber());
-                        tv_download.setText(downLoadStatus.getStringStatus()+",   "+downLoadStatus.getFormatStatusString()+"    ,下载进度："+downLoadStatus.getPercent());
+                        Log.d("duanyl", "onNext: flag:" + downLoadStatus.getStatus() + ",-->" + downLoadStatus.getFormatDownloadSize() + ",percent ：" + downLoadStatus.getPercentNumber());
+                        tv_download.setText(downLoadStatus.getStringStatus() + ",   " + downLoadStatus.getFormatStatusString() + "    ,下载进度：" + downLoadStatus.getPercent());
                     }
-                });
+                }
+        );
     }
 
     @Override

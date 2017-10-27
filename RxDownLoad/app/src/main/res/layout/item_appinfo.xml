@@ -23,7 +23,7 @@
         android:layout_width="55dp"
         android:layout_height="wrap_content" />
     <Button
-        android:text="删除"
+        android:text="取消"
         android:layout_width="55dp"
         android:layout_height="wrap_content" />
 </LinearLayout>

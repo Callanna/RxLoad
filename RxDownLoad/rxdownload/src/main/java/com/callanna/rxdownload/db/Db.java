@@ -35,8 +35,8 @@ public class Db {
                         COLUMN_TEMP_PATH + " TEXT," +
                         COLUMN_LMDF_PATH + " TEXT," +
                         COLUMN_LastModify + " TEXT," +
-                        COLUMN_TOTAL_SIZE + " INTEGER," +
-                        COLUMN_DOWNLOAD_SIZE + " INTEGER," +
+                        COLUMN_TOTAL_SIZE + " NUMERIC," +
+                        COLUMN_DOWNLOAD_SIZE + " NUMERIC," +
                         COLUMN_RANGE + " INTEGER, "+
                         COLUMN_CHENGED + " INTEGER, "+
                         COLUMN_DOWNLOAD_FLAG + " INTEGER " +

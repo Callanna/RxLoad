@@ -58,7 +58,7 @@ public class FileHelper {
 
     public void saveFile(FlowableEmitter<DownLoadStatus> emitter, File saveFile,
                          ResponseBody  resp) {
-        Log.d("duanyl", "saveFile: " +saveFile.getPath());
+        log("saveFile: " +saveFile.getPath());
         InputStream inputStream = null;
         OutputStream outputStream = null;
         try {
@@ -75,18 +75,22 @@ public class FileHelper {
                 long contentLength = resp.contentLength();
 
                 status.setTotalSize(contentLength);
-
+                long  oldStart= 0;
                 while ((readLen = inputStream.read(buffer)) != -1 && !emitter.isCancelled()) {
                     outputStream.write(buffer, 0, readLen);
                     downloadSize += readLen;
-                    Log.d("duanyl", "DownloadSize: "+downloadSize);
                     status.setDownloadSize(downloadSize);
-                    emitter.onNext(status);
+                    if(status.getDownloadSize() == contentLength){
+                        status.setStatus(DownLoadStatus.COMPLETED);
+                    }
+                    if(downloadSize - oldStart > 100000L){
+                        log("Thread: " + Thread.currentThread().getName() + "; saveLenRead: " + downloadSize);
+                        oldStart = downloadSize;
+                        emitter.onNext(status);
+                    }
                 }
-                if(status.getDownloadSize() == contentLength){
-                    status.setStatus(DownLoadStatus.COMPLETED);
-                }
-                outputStream.flush(); // This is important!!!
+                outputStream.flush();// This is important!!!
+                emitter.onNext(status);
                 emitter.onComplete();
             } finally {
                 closeQuietly(inputStream);
@@ -108,7 +112,7 @@ public class FileHelper {
 
     public void saveFile(FlowableEmitter<DownLoadStatus> emitter, int i, File tempFile,
                          File saveFile, ResponseBody response) {
-        Log.d("duanyl", "saveFile: temp "+i+","+saveFile.getPath());
+        log( "saveFile: temp "+i+","+saveFile.getPath());
 
         RandomAccessFile record = null;
         FileChannel recordChannel = null;
@@ -119,7 +123,6 @@ public class FileHelper {
             try {
                 int readLen;
                 byte[] buffer = new byte[2048];
-
                 DownLoadStatus status = new DownLoadStatus();
                 status.setStatus(DownLoadStatus.STARTED);
                 //随机访问文件，可以指定断点续传的起始位置
@@ -152,10 +155,6 @@ public class FileHelper {
 
                 while ((readLen = inStream.read(buffer)) != -1 && !emitter.isCancelled()) {
                     start += readLen;
-                    if(start - oldStart > 100000L){
-                        log("Thread: " + Thread.currentThread().getName() + "; saveLenRead: " + start);
-                        oldStart = start;
-                    }
                     MappedByteBuffer saveBuffer = saveChannel.map(READ_WRITE, start, readLen);
                     saveBuffer.put(buffer, 0, readLen);
                     recordBuffer.putLong(startIndex, start);
@@ -163,8 +162,13 @@ public class FileHelper {
                     if(status.getDownloadSize() == totalSize){
                         status.setStatus(DownLoadStatus.COMPLETED);
                     }
-                    emitter.onNext(status);
+                    if(start - oldStart > 100000L){
+                        log("Thread: " + Thread.currentThread().getName() + "; saveLenRead: " + start);
+                        oldStart = start;
+                        emitter.onNext(status);
+                    }
                 }
+                emitter.onNext(status);
                 emitter.onComplete();
 
             } finally {
@@ -254,7 +258,6 @@ public class FileHelper {
 
     private void prepareFile(File tempFile, File saveFile, long fileLength)
             throws IOException {
-        log("prepareffile"+fileLength);
 
         RandomAccessFile rFile = null;
         RandomAccessFile rRecord = null;
