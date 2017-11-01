@@ -4,12 +4,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.text.format.DateUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.callanna.rxdownload.RxDownLoad;
+import com.callanna.rxdownload.RxDL;
 import com.callanna.rxdownload.db.DownLoadBean;
 import com.callanna.rxdownload.db.DownLoadStatus;
 
@@ -46,7 +45,7 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
         btn_progress.setOnClickListener(this);
         initData();
          
-        RxDownLoad.getInstance().getDownLoading().subscribe(new Observer<List<DownLoadBean>>() {
+        RxDL.getInstance().getDownLoading().subscribe(new Observer<List<DownLoadBean>>() {
             @Override
             public void onSubscribe(@NonNull Disposable d) {
 
@@ -110,10 +109,12 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
 
     }
     private void todownload() {
+        List<String> urls = new ArrayList<>();
         for (AppInfo appinfo : appInfoList) {
-            RxDownLoad.getInstance().download(appinfo.getUrl());
+            urls.add(appinfo.getUrl());
+//            RxDL.getInstance().download(appinfo.getUrl());
         }
-
+        RxDL.getInstance().download(urls);
     }
     boolean isStop= false;
     @Override
@@ -121,7 +122,7 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
         switch (view.getId()){
             case R.id.btn_delete:
                 isStop= true;
-                RxDownLoad.getInstance().deleteAll();
+                RxDL.getInstance().deleteAll();
                 break;
             case R.id.btn_download:
                 isStop= false;
@@ -130,10 +131,10 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn_stop:
                 if(isStop){
                     isStop = false;
-                    RxDownLoad.getInstance().startAll();
+                    RxDL.getInstance().startAll();
                 }else {
                     isStop = true;
-                    RxDownLoad.getInstance().pauseAll();
+                    RxDL.getInstance().pauseAll();
                 }
                 break;
             case R.id.btn_progress:

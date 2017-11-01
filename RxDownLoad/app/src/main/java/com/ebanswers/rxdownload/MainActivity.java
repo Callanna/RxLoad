@@ -7,7 +7,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
-import com.callanna.rxdownload.RxDownLoad;
+import com.callanna.rxdownload.RxDL;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private Button btn_signle,btn_muti ;
@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d("duanyl", "onCreate: "+Environment.getExternalStoragePublicDirectory("download").getPath());
         Log.d("duanyl", "onCreate: "+getApplicationContext().getCacheDir().getPath());
         Log.d("duanyl", "onCreate: "+getApplicationContext().getFilesDir().getPath());
-        RxDownLoad.init(MainActivity.this)
+        RxDL.init(MainActivity.this)
                 .downloadPath(Environment.getExternalStoragePublicDirectory("download").getPath())
                 .maxDownloadNumber(3)
                 .maxThread(3);

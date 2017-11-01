@@ -9,7 +9,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.callanna.rxdownload.RxDownLoad;
+import com.callanna.rxdownload.RxDL;
 import com.callanna.rxdownload.db.DownLoadStatus;
 
 import io.reactivex.annotations.NonNull;
@@ -38,8 +38,8 @@ public class SignleActivity extends AppCompatActivity implements View.OnClickLis
         btn_download.setOnClickListener(this);
         btn_stop.setOnClickListener(this);
         btn_delete.setOnClickListener(this);
-        if(RxDownLoad.getInstance().getDownLoadBean(url) != null) {
-            RxDownLoad.getInstance().getDownStatus(url).subscribe(
+        if(RxDL.getInstance().getDownLoadBean(url) != null) {
+            RxDL.getInstance().getDownStatus(url).subscribe(
                     new Consumer<DownLoadStatus>() {
                         @Override
                         public void accept(@NonNull DownLoadStatus downLoadStatus) throws Exception {
@@ -51,7 +51,7 @@ public class SignleActivity extends AppCompatActivity implements View.OnClickLis
         }
     }
     private void todownload() {
-        RxDownLoad.getInstance().download(url).subscribe(
+        RxDL.getInstance().download(url).subscribe(
                 new Consumer<DownLoadStatus>() {
                     @Override
                     public void accept(@NonNull DownLoadStatus downLoadStatus) throws Exception {
@@ -66,13 +66,13 @@ public class SignleActivity extends AppCompatActivity implements View.OnClickLis
     public void onClick(View view) {
         switch (view.getId()){
             case R.id.btn_delete:
-                RxDownLoad.getInstance().delete(url);
+                RxDL.getInstance().delete(url);
                 break;
             case R.id.btn_download:
                 todownload();
                 break;
             case R.id.btn_stop:
-                RxDownLoad.getInstance().pause(url);
+                RxDL.getInstance().pause(url);
                 break;
         }
     }

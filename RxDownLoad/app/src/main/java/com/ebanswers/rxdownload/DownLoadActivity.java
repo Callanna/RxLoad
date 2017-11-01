@@ -10,7 +10,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.Button;
 
-import com.callanna.rxdownload.RxDownLoad;
+import com.callanna.rxdownload.RxDL;
 import com.callanna.rxdownload.db.DownLoadStatus;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
@@ -77,9 +77,9 @@ public class DownLoadActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     if (btn_start.getText().equals("继续")) {
-                        RxDownLoad.getInstance().start(item.getUrl());
+                        RxDL.getInstance().start(item.getUrl());
                     } else {
-                        RxDownLoad.getInstance().pause(item.getUrl());
+                        RxDL.getInstance().pause(item.getUrl());
                     }
                 }
             });
@@ -88,13 +88,13 @@ public class DownLoadActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     if (btn_delete.getText().equals("下载")) {
-                        RxDownLoad.getInstance().download(item.getUrl());
+                        RxDL.getInstance().download(item.getUrl());
                     } else {
-                        RxDownLoad.getInstance().delete(item.getUrl());
+                        RxDL.getInstance().delete(item.getUrl());
                     }
                 }
             });
-            RxDownLoad.getInstance().getDownStatus(item.getUrl()).subscribe(new Consumer<DownLoadStatus>() {
+            RxDL.getInstance().getDownStatus(item.getUrl()).subscribe(new Consumer<DownLoadStatus>() {
                 @Override
                 public void accept(@NonNull DownLoadStatus downLoadStatus) throws Exception {
                     helper.setText(R.id.tv_progress_status, downLoadStatus.getStringStatus())

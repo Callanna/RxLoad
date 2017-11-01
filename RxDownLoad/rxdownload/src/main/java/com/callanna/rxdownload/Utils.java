@@ -41,7 +41,7 @@ import static java.util.TimeZone.getTimeZone;
  * 工具类
  */
 public class Utils {
-    private static final String TAG = "RxDownLoad";
+    private static final String TAG = "RxDL";
     private static final CharSequence CACHE = ".cache";
     private static final CharSequence TMP_SUFFIX = ".tmp";
     private static final CharSequence LMF_SUFFIX = ".lmf";

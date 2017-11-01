@@ -49,7 +49,7 @@ public class DBManager {
         sqlBrite =  new SqlBrite.Builder()
                 .logger(new SqlBrite.Logger() {
                     @Override public void log(String message) {
-                        Log.d("RxDownLoad", "DataBase  "+message);
+                        Log.d("RxDL", "DataBase  "+message);
                     }
                 })
                 .build();

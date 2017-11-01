@@ -2,13 +2,13 @@ package com.callanna.rxdownload;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.util.Log;
 
 import com.callanna.rxdownload.api.DownloadHelper;
 import com.callanna.rxdownload.db.DBManager;
 import com.callanna.rxdownload.db.DownLoadBean;
 import com.callanna.rxdownload.db.DownLoadStatus;
 
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -28,8 +28,6 @@ import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
@@ -42,14 +40,13 @@ import io.reactivex.schedulers.Schedulers;
 
 import static com.callanna.rxdownload.Utils.log;
 import static com.callanna.rxdownload.db.DBManager.getSingleton;
-import static com.callanna.rxdownload.db.DownLoadStatus.NORMAL;
 import static com.callanna.rxdownload.db.DownLoadStatus.PAUSED;
 
 /**
  * Created by Callanna on 2017/7/16.
  */
 
-public class RxDownLoad {
+public class RxDL {
     private WeakReference<Context> context;
     private static Semaphore semaphore, semaphore_prepared;
     private static DownloadHelper downloadHelper;
@@ -65,7 +62,7 @@ public class RxDownLoad {
     private int maxDownloadNumber = 1;
 
     @SuppressLint("StaticFieldLeak")
-    private volatile static RxDownLoad instance;
+    private volatile static RxDL instance;
 
     static {
         RxJavaPlugins.setErrorHandler(new Consumer<Throwable>() {
@@ -82,7 +79,7 @@ public class RxDownLoad {
         });
     }
 
-    private RxDownLoad(Context context) {
+    private RxDL(Context context) {
         this.context = new WeakReference<Context>(context.getApplicationContext());
 
         downloadHelper = new DownloadHelper(context);
@@ -103,16 +100,16 @@ public class RxDownLoad {
         }
     }
 
-    public static RxDownLoad init(Context context) {
+    public static RxDL init(Context context) {
         if (instance == null) {
-            instance = new RxDownLoad(context);
+            instance = new RxDL(context);
         }
         Utils.setDebug(true);
         return instance;
     }
 
-    public static RxDownLoad init(Context context, boolean isdebug) {
-        instance = new RxDownLoad(context);
+    public static RxDL init(Context context, boolean isdebug) {
+        instance = new RxDL(context);
         Utils.setDebug(isdebug);
         return instance;
     }
@@ -122,7 +119,7 @@ public class RxDownLoad {
      *
      * @return RxDownload
      */
-    public static RxDownLoad getInstance() {
+    public static RxDL getInstance() {
         return instance;
     }
 
@@ -132,7 +129,7 @@ public class RxDownLoad {
      * @param savePath default save path.
      * @return instance.
      */
-    public RxDownLoad downloadPath(String savePath) {
+    public RxDL downloadPath(String savePath) {
         downloadHelper.setDefaultSavePath(savePath);
         return this;
     }
@@ -143,7 +140,7 @@ public class RxDownLoad {
      * @param max max threads
      * @return instance
      */
-    public RxDownLoad maxThread(int max) {
+    public RxDL maxThread(int max) {
         downloadHelper.setMaxThreads(max);
         return this;
     }
@@ -155,20 +152,50 @@ public class RxDownLoad {
      * @param max max download number
      * @return instance
      */
-    public RxDownLoad maxDownloadNumber(int max) {
+    public RxDL maxDownloadNumber(int max) {
         this.maxDownloadNumber = max;
         semaphore = new Semaphore(maxDownloadNumber);
         return this;
     }
     public synchronized void download(List<String> urls) {
-        Observable.fromArray(urls)
-                .flatMap(new Function<List<String>, ObservableSource<?>>() {
+
+        Flowable.just(urls)
+                .flatMap(new Function<List<String>, Publisher<String>>() {
                     @Override
-                    public ObservableSource<?> apply(@NonNull List<String> strings) throws Exception {
-                        return null;
+                    public Publisher<String> apply(List<String> integers) throws Exception {
+                        return Flowable.fromIterable(integers);
                     }
-                })
-         download(url,"");
+                }).subscribe(new Subscriber<String>() {
+            Subscription sp;
+            @Override
+            public void onSubscribe(Subscription s) {
+                sp = s;
+                sp.request(1);
+            }
+
+            @Override
+            public void onNext(String url) {
+               download(url,"");
+               Observable.timer(300,TimeUnit.MILLISECONDS).subscribe(new Consumer<Long>() {
+                   @Override
+                   public void accept(@NonNull Long aLong) throws Exception {
+                       sp.request(1);
+                   }
+               });
+            }
+
+            @Override
+            public void onError(Throwable t) {
+
+            }
+
+            @Override
+            public void onComplete() {
+
+            }
+        });
+
+
     }
 
     public synchronized Observable<DownLoadStatus> download(final String url) {
@@ -358,7 +385,11 @@ public class RxDownLoad {
             disposable.dispose();
         }
     }
-
+    public void delete(List<String> urls) {
+         for (int i = 0; i < urls.size();i++){
+             delete(urls.get(i));
+         }
+    }
     public void deleteAll() {
         isStopAll = true;
         linkedList.clear();
