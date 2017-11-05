@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .downloadPath(Environment.getExternalStoragePublicDirectory("download").getPath())
                 .maxDownloadNumber(3)
                 .maxThread(3);
+
     }
 
     @Override

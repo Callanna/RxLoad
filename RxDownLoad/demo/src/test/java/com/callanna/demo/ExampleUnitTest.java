@@ -1,4 +1,4 @@
-package com.callanna.rxdownload;
+package com.callanna.demo;
 
 import org.junit.Test;
 

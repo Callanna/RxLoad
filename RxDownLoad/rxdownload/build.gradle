@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply from: 'bintray.gradle'
 
 android {
     compileSdkVersion 25
@@ -8,6 +9,7 @@ android {
         preDexLibraries = false
         javaMaxHeapSize "4g" // 2g should be also OK
     }
+
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 25
@@ -28,11 +30,8 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
+
     compile 'com.android.support:appcompat-v7:25.3.1'
-    testCompile 'junit:junit:4.12'
     compile 'com.squareup.sqlbrite2:sqlbrite:2.0.0'
 
     def dependencies = rootProject.ext.dependencies
