@@ -3,9 +3,13 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/RxDownLoad.iml" filepath="$PROJECT_DIR$/RxDownLoad.iml" />
+      <module fileurl="file://D:\Github\RxDownLoad\RxDownLoad\RxDownLoad.iml" filepath="D:\Github\RxDownLoad\RxDownLoad\RxDownLoad.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://D:\Github\RxDownLoad\RxDownLoad\app\app.iml" filepath="D:\Github\RxDownLoad\RxDownLoad\app\app.iml" />
       <module fileurl="file://$PROJECT_DIR$/demo/demo.iml" filepath="$PROJECT_DIR$/demo/demo.iml" />
+      <module fileurl="file://D:\Github\RxDownLoad\RxDownLoad\demo\demo.iml" filepath="D:\Github\RxDownLoad\RxDownLoad\demo\demo.iml" />
       <module fileurl="file://$PROJECT_DIR$/rxdownload/rxdownload.iml" filepath="$PROJECT_DIR$/rxdownload/rxdownload.iml" />
+      <module fileurl="file://D:\Github\RxDownLoad\RxDownLoad\rxdownload\rxdownload.iml" filepath="D:\Github\RxDownLoad\RxDownLoad\rxdownload\rxdownload.iml" />
     </modules>
   </component>
 </project>

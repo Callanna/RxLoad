@@ -17,6 +17,7 @@ import com.callanna.demo.fragment.Simple4Fragment;
 import com.callanna.demo.fragment.Simple5Fragment;
 import com.callanna.demo.fragment.Simple6Fragment;
 import com.callanna.demo.fragment.Simple7Fragment;
+import com.callanna.demo.fragment.Simple8Fragment;
 import com.callanna.demo.fragment.SimpleFragment;
 import com.cvlib.indicator.MagicIndicator;
 import com.cvlib.indicator.ViewPagerHelper;
@@ -32,7 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class OperatorsActivity extends AppCompatActivity {
-    private static final String[] CHANNELS = new String[]{"厨师与顾客","Schduler调度器", "模式一", "模式二", "模式三,四,五", "模式六","操作符"};
+    private static final String[] CHANNELS = new String[]{"厨师与顾客","Schduler调度器", "模式一", "模式二", "模式三,四,五", "模式六","变换操作符","过滤操作符"};
     private List<String> mDataList = Arrays.asList(CHANNELS);
     private OperatorsPagerAdapter mPagerAdapter = new OperatorsPagerAdapter();
 
@@ -61,6 +62,7 @@ public class OperatorsActivity extends AppCompatActivity {
         data.add(Simple5Fragment.newInstance());
         data.add(Simple6Fragment.newInstance());
         data.add(Simple7Fragment.newInstance());
+        data.add(Simple8Fragment.newInstance());
         mPagerAdapter.setFragments(data);
     }
 
