@@ -248,9 +248,16 @@ public class Simple4Fragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        subscription.cancel();
-        subscription1.cancel();
-        s1.cancel();
+        if(subscription != null) {
+            subscription.cancel();
+        }
+        if(subscription1 != null) {
+            subscription1.cancel();
+        }
+        if(s1 != null) {
+            s1.cancel();
+        }
+
     }
     Subscription subscription;
 

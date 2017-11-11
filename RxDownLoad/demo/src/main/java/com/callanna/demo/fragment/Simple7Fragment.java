@@ -11,7 +11,6 @@ import android.widget.TextView;
 
 import com.callanna.demo.R;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -20,13 +19,11 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
-import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.observables.GroupedObservable;
-import io.reactivex.schedulers.Schedulers;
 
 /**
  * Transforming Observables
@@ -216,7 +213,12 @@ public class Simple7Fragment extends Fragment {
                 print(s);
             }
         });
-
+        //输出结果
+//        1.xxxxx
+//        2.xxxxx
+//        3.xxxxx
+//        4.xxxxx
+//        5.xxxxx
 
     }
 
@@ -262,7 +264,32 @@ public class Simple7Fragment extends Fragment {
                 print("accept:"+integer);
             }
         });
-
+        //输出结果
+//        accept:1.x
+//        accept:1.xx
+//        accept:1.xxx
+//        accept:1.xxxx
+//        accept:2.x
+//        accept:2.xx
+//        accept:2.xxx
+//        accept:2.xxxx
+//        accept:3.x
+//        accept:3.xx
+//        accept:3.xxx
+//        accept:3.xxxx
+//        accept:4.x
+//        accept:4.xx
+//        accept:4.xxx
+//        accept:4.xxxx
+//        accept:5.x
+//        accept:5.xx
+//        accept:5.xxx
+//        accept:5.xxxx
+//        accept:3
+//        accept:6
+//        accept:9
+//        accept:12
+//        accept:15
     }
 
 
@@ -296,6 +323,10 @@ public class Simple7Fragment extends Fragment {
                 }
             }
         });
+        //输出结果
+//        key=false,val=bbbb
+//        key=false,val=dddd
+//        key=true,val=[aaa, ccc, eee]
     }
 
     private void doAct5() {
@@ -318,6 +349,15 @@ public class Simple7Fragment extends Fragment {
                 return s+s2;
             }
         }).subscribe(getStringObserver("Scan"));
+        //输出结果
+        //1 3 6 10 15
+//        Scan-->String onSubscribe
+//        Scan-->String onNext : value :a
+//        Scan-->String onNext : value :ab
+//        Scan-->String onNext : value :abc
+//        Scan-->String onNext : value :abcd
+//        Scan-->String onNext : value :abcde
+//        Scan-->String onComplete
     }
 
     private void doAct6() {
@@ -337,5 +377,21 @@ public class Simple7Fragment extends Fragment {
                         });
                     }
                 });
+        //输出结果：
+        //Window accept---------
+        //0
+        //1
+        //...
+        //15
+        //Window accept---------
+        //16
+        //...
+        //32
+        //Window accept---------
+        //33
+        //...
+        //48
+        //Window accept---------
+        //49
     }
 }

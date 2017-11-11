@@ -11,6 +11,8 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
+import com.callanna.demo.fragment.Simple10Fragment;
+import com.callanna.demo.fragment.Simple11Fragment;
 import com.callanna.demo.fragment.Simple2Fragment;
 import com.callanna.demo.fragment.Simple3Fragment;
 import com.callanna.demo.fragment.Simple4Fragment;
@@ -18,6 +20,7 @@ import com.callanna.demo.fragment.Simple5Fragment;
 import com.callanna.demo.fragment.Simple6Fragment;
 import com.callanna.demo.fragment.Simple7Fragment;
 import com.callanna.demo.fragment.Simple8Fragment;
+import com.callanna.demo.fragment.Simple9Fragment;
 import com.callanna.demo.fragment.SimpleFragment;
 import com.cvlib.indicator.MagicIndicator;
 import com.cvlib.indicator.ViewPagerHelper;
@@ -33,7 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class OperatorsActivity extends AppCompatActivity {
-    private static final String[] CHANNELS = new String[]{"厨师与顾客","Schduler调度器", "模式一", "模式二", "模式三,四,五", "模式六","变换操作符","过滤操作符"};
+    private static final String[] CHANNELS = new String[]{"厨师与顾客","Schduler调度器", "模式一", "模式二", "模式三,四,五", "模式六","变换操作符","过滤操作符","组合操作符","bool操作符","事件流操作符"};
     private List<String> mDataList = Arrays.asList(CHANNELS);
     private OperatorsPagerAdapter mPagerAdapter = new OperatorsPagerAdapter();
 
@@ -63,6 +66,9 @@ public class OperatorsActivity extends AppCompatActivity {
         data.add(Simple6Fragment.newInstance());
         data.add(Simple7Fragment.newInstance());
         data.add(Simple8Fragment.newInstance());
+        data.add(Simple9Fragment.newInstance());
+        data.add(Simple10Fragment.newInstance());
+        data.add(Simple11Fragment.newInstance());
         mPagerAdapter.setFragments(data);
     }
 
