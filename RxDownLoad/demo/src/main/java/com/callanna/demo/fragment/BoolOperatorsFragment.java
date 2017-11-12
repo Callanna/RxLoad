@@ -18,14 +18,14 @@ import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Predicate;
 
 /**
- * Filtering Observables
+ * Bool Observables Operators
  */
-public class Simple10Fragment extends Fragment {
+public class BoolOperatorsFragment extends Fragment {
     Button btn_smaple1, btn_smaple2, btn_smaple3, btn_smaple4, btn_smaple5, btn_smaple6;
     TextView tx_console;
 
-    public static Simple10Fragment newInstance() {
-        Simple10Fragment fragment = new Simple10Fragment();
+    public static BoolOperatorsFragment newInstance() {
+        BoolOperatorsFragment fragment = new BoolOperatorsFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);

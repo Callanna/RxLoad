@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.callanna.demo.fragment.Simple3Fragment">
+    tools:context="com.callanna.demo.fragment.ObservableFragment">
 
     <!-- TODO: Update blank fragment layout -->
     <LinearLayout

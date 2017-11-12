@@ -26,15 +26,15 @@ import io.reactivex.functions.Function;
 import io.reactivex.observables.GroupedObservable;
 
 /**
- * Transforming Observables
+ * Transforming Observables Operators
  */
-public class Simple7Fragment extends Fragment {
+public class TransformingObservablesOperatorsFragment extends Fragment {
     Button btn_smaple1, btn_smaple2, btn_smaple3, btn_smaple4, btn_smaple5, btn_smaple6;
     TextView tx_console;
 
 
-    public static Simple7Fragment newInstance() {
-        Simple7Fragment fragment = new Simple7Fragment();
+    public static TransformingObservablesOperatorsFragment newInstance() {
+        TransformingObservablesOperatorsFragment fragment = new TransformingObservablesOperatorsFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);

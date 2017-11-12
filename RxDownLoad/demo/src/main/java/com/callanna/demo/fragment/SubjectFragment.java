@@ -17,12 +17,14 @@ import io.reactivex.subjects.AsyncSubject;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.ReplaySubject;
-
-public class Simple6Fragment extends Fragment {
+/**
+ * BehaviorSubject/PublishSubject/AsyncSubject/ReplaySubject
+ */
+public class SubjectFragment extends Fragment {
     Button btn_smaple1,btn_smaple2,btn_smaple3 ,btn_smaple4;
     TextView tx_console;
-    public static Simple6Fragment newInstance( ) {
-        Simple6Fragment fragment = new Simple6Fragment();
+    public static SubjectFragment newInstance( ) {
+        SubjectFragment fragment = new SubjectFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);

@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:orientation="vertical"
     android:layout_height="match_parent" tools:context="com.callanna.demo.MainActivity">
 
    <Button
+       android:onClick="toCooker"
+       android:text="RxJava--Schduler调度器"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content" />
+   <Button
+       android:onClick="toModel"
+       android:text="RxJava--观察者模式"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content" />
+   <Button
        android:onClick="toOperators"
-       android:text="RxJava--Operators"
+       android:text="RxJava--操作符"
        android:layout_width="match_parent"
        android:layout_height="wrap_content" />
 
-</android.support.constraint.ConstraintLayout>
+</LinearLayout>

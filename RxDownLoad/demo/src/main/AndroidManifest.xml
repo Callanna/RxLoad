@@ -17,7 +17,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".OperatorsActivity"></activity>
+        <activity android:name=".SecondActivity"></activity>
     </application>
 
 </manifest>

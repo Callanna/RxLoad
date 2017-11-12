@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.callanna.demo.OperatorsActivity">
+    tools:context="com.callanna.demo.SecondActivity">
     <com.cvlib.indicator.MagicIndicator
         android:id="@+id/magic_indicator"
         android:layout_width="match_parent"

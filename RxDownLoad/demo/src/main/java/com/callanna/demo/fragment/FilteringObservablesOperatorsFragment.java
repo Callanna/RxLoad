@@ -23,14 +23,14 @@ import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
 /**
- * Filtering Observables
+ * Filtering Observables Operators
  */
-public class Simple8Fragment extends Fragment {
+public class FilteringObservablesOperatorsFragment extends Fragment {
     Button btn_smaple1, btn_smaple2, btn_smaple3, btn_smaple4, btn_smaple5, btn_smaple6;
     TextView tx_console;
 
-    public static Simple8Fragment newInstance() {
-        Simple8Fragment fragment = new Simple8Fragment();
+    public static FilteringObservablesOperatorsFragment newInstance() {
+        FilteringObservablesOperatorsFragment fragment = new FilteringObservablesOperatorsFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);

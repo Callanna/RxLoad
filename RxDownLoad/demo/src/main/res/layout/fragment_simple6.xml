@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.callanna.demo.fragment.Simple4Fragment">
+    tools:context="com.callanna.demo.fragment.FlowableFragment">
 
     <!-- TODO: Update blank fragment layout -->
     <LinearLayout
@@ -21,6 +21,11 @@
             android:text="AsyncSubject"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
         <Button
             android:id="@+id/btn_act3"
             android:layout_weight="1"
@@ -33,7 +38,6 @@
             android:text="ReplaySubject"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
-
     </LinearLayout>
     <ScrollView
         android:layout_width="match_parent"

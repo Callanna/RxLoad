@@ -25,11 +25,14 @@ import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 
-public class Simple4Fragment extends Fragment {
+/**
+ * Flowable/Subscription
+ */
+public class FlowableFragment extends Fragment {
     Button btn_smaple1,btn_smaple2,btn_smaple3,btn_smaple4,btn_smaple5,btn_smaple6;
     TextView tx_console;
-    public static Simple4Fragment newInstance( ) {
-        Simple4Fragment fragment = new Simple4Fragment();
+    public static FlowableFragment newInstance( ) {
+        FlowableFragment fragment = new FlowableFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);
@@ -259,7 +262,7 @@ public class Simple4Fragment extends Fragment {
         }
 
     }
-    Subscription subscription;
+     Subscription subscription;
 
     private void doAct3() {
         tx_console.setText("MISSING");

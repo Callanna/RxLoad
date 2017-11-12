@@ -11,17 +11,17 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
-import com.callanna.demo.fragment.Simple10Fragment;
-import com.callanna.demo.fragment.Simple11Fragment;
-import com.callanna.demo.fragment.Simple2Fragment;
-import com.callanna.demo.fragment.Simple3Fragment;
-import com.callanna.demo.fragment.Simple4Fragment;
-import com.callanna.demo.fragment.Simple5Fragment;
-import com.callanna.demo.fragment.Simple6Fragment;
-import com.callanna.demo.fragment.Simple7Fragment;
-import com.callanna.demo.fragment.Simple8Fragment;
-import com.callanna.demo.fragment.Simple9Fragment;
+import com.callanna.demo.fragment.BoolOperatorsFragment;
+import com.callanna.demo.fragment.CombiningObservablesOperatorsFragment;
+import com.callanna.demo.fragment.FilteringObservablesOperatorsFragment;
+import com.callanna.demo.fragment.FlowableFragment;
+import com.callanna.demo.fragment.ObservableFragment;
+import com.callanna.demo.fragment.ObservableUtilityOperatorsFragment;
+import com.callanna.demo.fragment.SchedulersFragment;
 import com.callanna.demo.fragment.SimpleFragment;
+import com.callanna.demo.fragment.SingleFragment;
+import com.callanna.demo.fragment.SubjectFragment;
+import com.callanna.demo.fragment.TransformingObservablesOperatorsFragment;
 import com.cvlib.indicator.MagicIndicator;
 import com.cvlib.indicator.ViewPagerHelper;
 import com.cvlib.indicator.buildins.commonnavigator.CommonNavigator;
@@ -35,21 +35,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class OperatorsActivity extends AppCompatActivity {
-    private static final String[] CHANNELS = new String[]{"厨师与顾客","Schduler调度器", "模式一", "模式二", "模式三,四,五", "模式六","变换操作符","过滤操作符","组合操作符","bool操作符","事件流操作符"};
+public class SecondActivity extends AppCompatActivity {
+    private final static String TAG  = "TAG";
+    public final static int TAG_COOK = 1;
+    public final static int TAG_MODEL = 2;
+    public final static int TAG_OPERATOR = 3;
+    private static final String[] CHANNELS = new String[]{"厨师与顾客", "Schduler调度器" };
+    private static final String[] CHANNELS2 = new String[]{"模式一", "模式二", "模式三,四,五", "模式六" };
+    private static final String[] CHANNELS3 = new String[]{ "模式一", "模式二", "模式三,四,五", "模式六","变换操作符","过滤操作符","组合操作符","bool操作符","事件流操作符"};
+    private int CURRENT_TAG = 1;
+
     private List<String> mDataList = Arrays.asList(CHANNELS);
     private OperatorsPagerAdapter mPagerAdapter = new OperatorsPagerAdapter();
 
     private ViewPager mViewPager;
-    public static void start(Context context){
-        Intent intent = new Intent(context,OperatorsActivity.class);
+    public static void start(Context context,int tag){
+        Intent intent = new Intent(context,SecondActivity.class);
+        intent.putExtra(TAG,tag);
         context.startActivity(intent);
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_operators);
-
+        CURRENT_TAG = getIntent().getIntExtra(TAG,TAG_COOK);
         mViewPager = (ViewPager) findViewById(R.id.view_pager);
         mViewPager.setAdapter(mPagerAdapter);
         initData();
@@ -58,17 +67,28 @@ public class OperatorsActivity extends AppCompatActivity {
 
     private void initData() {
         List<Fragment> data = new ArrayList<>();
-        data.add(SimpleFragment.newInstance());
-        data.add(Simple2Fragment.newInstance());
-        data.add(Simple3Fragment.newInstance());
-        data.add(Simple4Fragment.newInstance());
-        data.add(Simple5Fragment.newInstance());
-        data.add(Simple6Fragment.newInstance());
-        data.add(Simple7Fragment.newInstance());
-        data.add(Simple8Fragment.newInstance());
-        data.add(Simple9Fragment.newInstance());
-        data.add(Simple10Fragment.newInstance());
-        data.add(Simple11Fragment.newInstance());
+        switch (CURRENT_TAG){
+            case TAG_COOK:
+                mDataList = Arrays.asList(CHANNELS);
+                data.add(SimpleFragment.newInstance());
+                data.add(SchedulersFragment.newInstance());
+                break;
+            case TAG_MODEL:
+                mDataList = Arrays.asList(CHANNELS2);
+                data.add(ObservableFragment.newInstance());
+                data.add(FlowableFragment.newInstance());
+                data.add(SingleFragment.newInstance());
+                data.add(SubjectFragment.newInstance());
+                break;
+            case TAG_OPERATOR:
+                mDataList = Arrays.asList(CHANNELS3);
+                data.add(TransformingObservablesOperatorsFragment.newInstance());
+                data.add(FilteringObservablesOperatorsFragment.newInstance());
+                data.add(CombiningObservablesOperatorsFragment.newInstance());
+                data.add(BoolOperatorsFragment.newInstance());
+                data.add(ObservableUtilityOperatorsFragment.newInstance());
+                break;
+        }
         mPagerAdapter.setFragments(data);
     }
 
@@ -113,7 +133,7 @@ public class OperatorsActivity extends AppCompatActivity {
     class OperatorsPagerAdapter extends FragmentStatePagerAdapter {
         private List<Fragment> fragments = new ArrayList<>();
         public OperatorsPagerAdapter() {
-            super(OperatorsActivity.this.getSupportFragmentManager());
+            super(SecondActivity.this.getSupportFragmentManager());
         }
 
         public void setFragments(List<Fragment> fragments) {

@@ -34,14 +34,17 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 
-public class Simple3Fragment extends Fragment {
+/**
+ * Observable/Observer
+ */
+public class ObservableFragment extends Fragment {
     Button btn_smaple1, btn_smaple2,btn_smaple3, btn_smaple4;
     TextView tx_console;
     String[] arr = new String[]{"a", "b", "c", "d", "e"};
     List<String> list_str = Arrays.asList(arr);
 
-    public static Simple3Fragment newInstance() {
-        Simple3Fragment fragment = new Simple3Fragment();
+    public static ObservableFragment newInstance() {
+        ObservableFragment fragment = new ObservableFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);

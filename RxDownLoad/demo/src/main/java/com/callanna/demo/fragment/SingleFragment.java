@@ -31,11 +31,14 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
 
-public class Simple5Fragment extends Fragment {
+/**
+ * Completable/Maybe/Single
+ */
+public class SingleFragment extends Fragment {
     Button btn_smaple1,btn_smaple2,btn_smaple3,btn_smaple4,btn_smaple5,btn_smaple6;
     TextView tx_console;
-    public static Simple5Fragment newInstance( ) {
-        Simple5Fragment fragment = new Simple5Fragment();
+    public static SingleFragment newInstance( ) {
+        SingleFragment fragment = new SingleFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);

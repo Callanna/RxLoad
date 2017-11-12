@@ -28,11 +28,11 @@ import static io.reactivex.Observable.create;
 /**
  * 三个情况 ，看看RxJava观察者，被观察者执行任务的线程Schedulers
  */
-public class Simple2Fragment extends Fragment {
+public class SchedulersFragment extends Fragment {
     Button btn_smaple1,btn_smaple2,btn_smaple3,btn_smaple4,btn_smaple5;
     TextView tx_console;
-    public static Simple2Fragment newInstance( ) {
-        Simple2Fragment fragment = new Simple2Fragment();
+    public static SchedulersFragment newInstance( ) {
+        SchedulersFragment fragment = new SchedulersFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);

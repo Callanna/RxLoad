@@ -23,14 +23,14 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Function4;
 
 /**
- * Filtering Observables
+ * Combining Observables Operators
  */
-public class Simple9Fragment extends Fragment {
+public class CombiningObservablesOperatorsFragment extends Fragment {
     Button btn_smaple1, btn_smaple2, btn_smaple3, btn_smaple4, btn_smaple5, btn_smaple6;
     TextView tx_console;
 
-    public static Simple9Fragment newInstance() {
-        Simple9Fragment fragment = new Simple9Fragment();
+    public static CombiningObservablesOperatorsFragment newInstance() {
+        CombiningObservablesOperatorsFragment fragment = new CombiningObservablesOperatorsFragment();
         Bundle args = new Bundle();
 
         fragment.setArguments(args);
@@ -184,7 +184,7 @@ public class Simple9Fragment extends Fragment {
 
 
     private void doAct3() {
-        //-------------FlatMap operator------
+        //-------------join operator------
         tx_console.setText("join");
         getFirstObservable()
                 .join(getSecondObservable(), new Function<Long, ObservableSource<Long>>() {
@@ -215,7 +215,7 @@ public class Simple9Fragment extends Fragment {
     String[] arr = new String[]{"aaa", "bb", "ccc", "dd", "eee","fff","gg"};
     private void doAct4() {
 
-        //-------------Last operator------
+        //-------------merge operator------
         tx_console.setText("merge");
 
         Observable.just(11).merge(getFirstObservable(),getSecondObservable()).subscribe(new Consumer<Long>() {
@@ -243,7 +243,6 @@ public class Simple9Fragment extends Fragment {
     }
 
     private void doAct5() {
-        // -------------Until
         tx_console.setText("switchMap");
         getFirstObservable().switchMap(new Function<Long, ObservableSource<String>>() {
             @Override

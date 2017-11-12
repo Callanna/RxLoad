@@ -11,8 +11,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
     }
-
+    public void toCooker(View view){
+        SecondActivity.start(this,SecondActivity.TAG_COOK);
+    }
+    public void toModel(View view){
+        SecondActivity.start(this,SecondActivity.TAG_MODEL);
+    }
     public void toOperators(View view){
-        OperatorsActivity.start(this);
+        SecondActivity.start(this,SecondActivity.TAG_OPERATOR);
     }
 }
