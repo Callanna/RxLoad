@@ -2,7 +2,6 @@ package com.callanna.rxload.db;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.util.Log;
 
 import com.squareup.sqlbrite2.BriteDatabase;
 import com.squareup.sqlbrite2.SqlBrite;
@@ -12,8 +11,6 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.schedulers.Schedulers;
-
-import static com.callanna.rxload.Utils.log;
 
 /**
  * Created by Callanna on 2017/7/16.
@@ -38,13 +35,7 @@ public class DBManager {
 
     private DBManager(Context context) {
         mDbOpenHelper = new DBHelper(context);
-        sqlBrite =  new SqlBrite.Builder()
-                .logger(new SqlBrite.Logger() {
-                    @Override public void log(String message) {
-                        Log.d("RxDL", "DataBase  "+message);
-                    }
-                })
-                .build();
+        sqlBrite =  new SqlBrite.Builder().build();
         db = sqlBrite.wrapDatabaseHelper(mDbOpenHelper, Schedulers.io());
         db.setLoggingEnabled(false);
     }

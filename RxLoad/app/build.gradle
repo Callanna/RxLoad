@@ -3,16 +3,21 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.1"
+
     defaultConfig {
         applicationId "com.ebanswers.rxdownload"
         minSdkVersion 14
         targetSdkVersion 26
+        multiDexEnabled true
         versionCode 1
         versionName "a1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -44,4 +49,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.18'
     compile 'com.android.support:recyclerview-v7:26.+'
+    compile 'com.android.support:multidex:1.0.0'
 }

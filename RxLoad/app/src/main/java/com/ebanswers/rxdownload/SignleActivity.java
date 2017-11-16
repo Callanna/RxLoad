@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.callanna.rxload.RxLoad;
+import com.callanna.rxload.data.LoadInfo;
 import com.callanna.rxload.db.DownLoadStatus;
 
 import io.reactivex.annotations.NonNull;
@@ -52,11 +53,11 @@ public class SignleActivity extends AppCompatActivity implements View.OnClickLis
     }
     private void todownload() {
         RxLoad.getInstance().download(url).subscribe(
-                new Consumer<DownLoadStatus>() {
+                new Consumer<LoadInfo>() {
                     @Override
-                    public void accept(@NonNull DownLoadStatus downLoadStatus) throws Exception {
-                        Log.d("duanyl", "onNext: flag:" + downLoadStatus.getStatus() + ",-->" + downLoadStatus.getFormatDownloadSize() + ",percent ：" + downLoadStatus.getPercentNumber());
-                        tv_download.setText(downLoadStatus.getStringStatus() + ",   " + downLoadStatus.getFormatStatusString() + "    ,下载进度：" + downLoadStatus.getPercent());
+                    public void accept(@NonNull LoadInfo loadInfo) throws Exception {
+                        Log.d("duanyl", "onNext: flag:" + loadInfo.getStatus() + ",-->" + loadInfo.getFormatDownloadSize() + ",percent ：" + loadInfo.getPercentNumber());
+                        tv_download.setText(loadInfo.getStringStatus() + ",   " + loadInfo.getFormatStatusString() + "    ,下载进度：" + loadInfo.getPercent());
                     }
                 }
         );

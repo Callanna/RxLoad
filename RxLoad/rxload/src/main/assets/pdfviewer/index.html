@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+    <script src="pdf.js"></script>
+    <link rel="stylesheet" href="zzsc.css">
+</head>
+<body>
+
+<script>
+    // If absolute URL from the remote server is provided, configure the CORS
+    // header on that server.
+    window.download = function(url){
+        var elementById = document.getElementById('img');
+        var load = document.getElementById('load');
+        load.style.left = (document.body.clientWidth - 100) / 2;//100为mydiv的宽度
+        load.style.height = (document.body.clientHeight- 100) / 2;
+        elementById.src = url;
+        img.onerror = function () {
+            pdfBridge.start();
+            img.style.display='none'
+            load.style.display='none'
+            //当作图片加载,失败时 加载为html
+            // Disable workers to avoid yet another cross-origin issue (workers need
+            // the URL of the script to be loaded, and dynamically loading a cross-origin
+            // script does not work).
+            // PDFJS.disableWorker = true;
+            // The workerSrc property shall be specified.
+            PDFJS.workerSrc = 'pdf.worker.js';
+            var str = pdfBridge.getByte(url);
+            var bytes = JSON.parse(str);
+            var bf = new Uint8Array(bytes);
+            var loadingTask = PDFJS.getDocument(bf.buffer);
+            loadingTask.promise.then(function(pdf) {
+                console.log('PDF loaded');
+                // Fetch the first page
+                var pageNumber = 1;
+                pdf.getPage(pageNumber).then(function(page) {
+                    console.log('Page loaded');
+                    var scale = 1.5;
+                    var viewport = page.getViewport(scale);
+                    // Prepare canvas using PDF page dimensions
+                    var canvas = document.getElementById('the-canvas');
+                    var context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    // Render PDF page into canvas context
+                    var renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    var renderTask = page.render(renderContext);
+                    renderTask.then(function () {
+                        console.log('Page rendered');
+                        pdfBridge.end()
+                        load.style.display='none'
+                    });
+                });
+            }, function (reason) {
+                pdfBridge.end()
+                load.style.display='none'
+                console.error(reason);
+            });
+        };
+
+    }
+</script>
+<img id="img"/>
+
+<div id="load" class="wrapper" >
+    <div class="dashboard"></div>
+</div>
+<!-- 代码 开始 -->
+<canvas id="the-canvas"></canvas>
+
+<!-- 代码 结束 -->
+</body>
+</html>

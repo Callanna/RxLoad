@@ -17,6 +17,24 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="批量下载" />
+        <Button
+            android:layout_margin="10dp"
+            android:id="@+id/btn_opendoc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="打开doc"  />
+        <Button
+            android:layout_margin="10dp"
+            android:id="@+id/btn_openxls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="打开xls" />
 
+        <Button
+            android:layout_margin="10dp"
+            android:id="@+id/btn_openyouku"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="优酷网" />
 
 </LinearLayout>

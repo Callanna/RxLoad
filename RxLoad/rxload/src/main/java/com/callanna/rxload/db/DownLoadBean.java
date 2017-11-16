@@ -3,6 +3,8 @@ package com.callanna.rxload.db;
 import android.content.ContentValues;
 import android.database.Cursor;
 
+import com.callanna.rxload.data.LoadInfo;
+
 import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Function;
 
@@ -162,6 +164,16 @@ public class DownLoadBean {
         return lastModify;
     }
 
+
+    public LoadInfo toLoadInfo(){
+        LoadInfo loadInfo = new LoadInfo();
+        loadInfo.setDownloadSize(getStatus().getDownloadSize());
+        loadInfo.setTotalSize(getStatus().getTotalSize());
+        loadInfo.setLoadurl(getUrl());
+        loadInfo.setSavePath(getSavePath());
+        loadInfo.setSaveName(getSaveName());
+        return loadInfo;
+    }
     public static final class Builder {
         private final ContentValues values = new ContentValues();
 
