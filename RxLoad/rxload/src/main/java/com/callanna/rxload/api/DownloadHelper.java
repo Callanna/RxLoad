@@ -288,7 +288,6 @@ public class DownloadHelper {
                     @Override
                     public void onNext(@NonNull DownLoadBean downLoadBean) {
                         e.onNext(downLoadBean);
-                        e.onComplete();
                     }
 
                     @Override
@@ -303,7 +302,7 @@ public class DownloadHelper {
                 });
             }
         }, BackpressureStrategy.LATEST);
-        return flowable.delay(2,TimeUnit.SECONDS);
+        return flowable.delay(500,TimeUnit.MILLISECONDS);
     }
 
     public ObservableSource<DownLoadStatus> startDownLoad(final DownLoadBean bean) {

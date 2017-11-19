@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
@@ -178,7 +179,10 @@ public class RxLoad {
     }
 
     public static synchronized void download(List<String> urls) {
-
+        if(  instance == null){
+            return;
+        }
+        isStopAll = false;
         Flowable.just(urls)
                 .flatMap(new Function<List<String>, Publisher<String>>() {
                     @Override
@@ -202,6 +206,7 @@ public class RxLoad {
                         download(url, "");
                         try {
                             Thread.sleep(500);
+                            sp.request(1);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -222,12 +227,17 @@ public class RxLoad {
     }
 
     public static synchronized Observable<LoadInfo> download(final String url) {
+        if(  instance == null){
+            return null;
+        }
+        isStopAll = false;
         download(url, "");
 
         return getLoadInfo(url);
     }
 
     public static synchronized void download(final String url, String filename) {
+        isStopAll = false;
         if (flowableEmitter != null) {
             log("onNext: 1");
             linkedList.add(url);
@@ -339,6 +349,9 @@ public class RxLoad {
     };
 
     public static void start(String url) {
+        if(  instance == null){
+            return  ;
+        }
         linkedList.add(url);
         if (flowableEmitter != null) {
             log("onNext: 1");
@@ -375,6 +388,9 @@ public class RxLoad {
     }
 
     public static void startAll() {
+        if(  instance == null){
+            return  ;
+        }
         isStopAll = false;
         dbManager.searchDownloadByStatus(DownLoadStatus.PAUSED)
                 .flatMap(new Function<List<DownLoadBean>, ObservableSource<DownLoadBean>>() {
@@ -392,6 +408,9 @@ public class RxLoad {
     }
 
     public static void pause(String url) {
+        if(  instance == null){
+            return  ;
+        }
         dbManager.updateStatusByUrl(url, PAUSED);
         Disposable disposable = disposableMap.get(url);
         if (disposable != null) {
@@ -400,6 +419,9 @@ public class RxLoad {
     }
 
     public static void pauseAll() {
+        if(  instance == null){
+            return  ;
+        }
         isStopAll = true;
         for (String url : linkedList) {
             dbManager.updateStatusByUrl(url, PAUSED);
@@ -410,6 +432,9 @@ public class RxLoad {
     }
 
     public static void delete(String url) {
+        if(  instance == null){
+            return  ;
+        }
         if (linkedList.contains(url)) {
             linkedList.remove(url);
         }
@@ -421,12 +446,18 @@ public class RxLoad {
     }
 
     public static void delete(List<String> urls) {
+        if(  instance == null){
+            return  ;
+        }
         for (int i = 0; i < urls.size(); i++) {
             delete(urls.get(i));
         }
     }
 
     public static void deleteAll() {
+        if(  instance == null){
+            return  ;
+        }
         isStopAll = true;
         linkedList.clear();
         downloadHelper.deleteAll();
@@ -438,21 +469,21 @@ public class RxLoad {
 
     }
 
-    public static DownLoadBean getDownLoadBean(String url) {
+    private static DownLoadBean getDownLoadBean(String url) {
         return dbManager.searchByUrl(url);
     }
 
-    public static String getDownLoadFilePath(String url) {
+    private static String getDownLoadFilePath(String url) {
         return dbManager.searchByUrl(url).getSavePath();
     }
 
-    public static Observable<DownLoadStatus> getDownStatus(String url) {
+    private static Observable<DownLoadStatus> getDownStatus(String url) {
         Observable observer = Observable.just(url)
                 .flatMap(new Function<String, ObservableSource<DownLoadBean>>() {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull String url) throws Exception {
                         return dbManager.searchDownloadByUrl(url)
-                                .throttleLast(1, TimeUnit.SECONDS);
+                                .throttleLast(500, TimeUnit.MILLISECONDS);
                     }
                 })
                 .flatMap(new Function<DownLoadBean, ObservableSource<DownLoadStatus>>() {
@@ -465,12 +496,15 @@ public class RxLoad {
     }
 
     public static Observable<LoadInfo> getLoadInfo(String url) {
+        if(  instance == null){
+            return null;
+        }
         Observable observer = Observable.just(url)
                 .flatMap(new Function<String, ObservableSource<DownLoadBean>>() {
                     @Override
                     public ObservableSource<DownLoadBean> apply(@NonNull String url) throws Exception {
                         return dbManager.searchDownloadByUrl(url)
-                                .throttleLast(1, TimeUnit.SECONDS);
+                                .throttleLast(500, TimeUnit.MILLISECONDS);
                     }
                 })
                 .flatMap(new Function<DownLoadBean, ObservableSource<LoadInfo>>() {
@@ -482,34 +516,50 @@ public class RxLoad {
         return observer;
     }
 
-    public static ObservableSource<List<DownLoadBean>> getDownLoading() {
+    public static ObservableSource<List<LoadInfo>> getDownLoading() {
+        if(  instance == null){
+            return null;
+        }
         return dbManager.searchDownloadByAll()
                 .throttleLast(1, TimeUnit.SECONDS)
-                .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
+                .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<LoadInfo>>>() {
                     @Override
-                    public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
+                    public ObservableSource<List<LoadInfo>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
                         log("getDownLoading=--->size:" + downLoadBeen.size());
-                        return Observable.just(downLoadBeen);
+                        List<LoadInfo> loadInfos = new ArrayList<>();
+                        for(int i = 0; i < downLoadBeen.size();i++){
+                            loadInfos.add(downLoadBeen.get(i).toLoadInfo());
+                        }
+                        return Observable.just(loadInfos);
                     }
                 })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
-    public static ObservableSource<List<DownLoadBean>> getDownLoading(int status) {
+    public static ObservableSource<List<LoadInfo>> getDownLoading(int status) {
         final List<DownLoadBean> downLoadBeanList = new ArrayList<DownLoadBean>();
+        if(  instance == null){
+            return null;
+        }
         return dbManager.searchStatus(status)
                 .throttleLast(1, TimeUnit.SECONDS)
-                .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<DownLoadBean>>>() {
+                .flatMap(new Function<List<DownLoadBean>, ObservableSource<List<LoadInfo>>>() {
                     @Override
-                    public ObservableSource<List<DownLoadBean>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
-                        log("getDownLoading=--->size:" + downLoadBeen.size());
-                        return Observable.just(downLoadBeen);
+                    public ObservableSource<List<LoadInfo>> apply(@NonNull List<DownLoadBean> downLoadBeen) throws Exception {
+                        List<LoadInfo> loadInfos = new ArrayList<>();
+                        for(int i = 0; i < downLoadBeen.size();i++){
+                            loadInfos.add(downLoadBeen.get(i).toLoadInfo());
+                        }
+                        return Observable.just(loadInfos);
                     }
                 });
     }
 
-    private static Observable<LoadInfo> loadFile(String url) {
+    public static Observable<LoadInfo> loadFile(String url) {
+        if(  instance == null){
+            return null;
+        }
         LoadInfo loadInfo = new LoadInfo();
         if (url.contains("https://") || url.contains("http://")) {
             return download(url);
@@ -521,32 +571,50 @@ public class RxLoad {
                 loadInfo.setLoadurl(url);
                 loadInfo.setSavePath(file.getPath());
                 loadInfo.setSaveName(file.getName());
+                loadInfo.setStatus(LoadInfo.COMPLETED);
             }
             return Observable.just(loadInfo);
         }
     }
-    private static Observable<File> loadFile(final Context context,String url) {
+    public static Observable<File> loadFile(final Context context,String url) {
+        if(  instance == null){
+            instance =new RxLoad(context.getApplicationContext());
+        }
        return loadFile(url).flatMap(new Function<LoadInfo, ObservableSource<File>>() {
             @Override
             public ObservableSource<File> apply(LoadInfo loadInfo) throws Exception {
+                Log.d("duanyl", "apply: File "+loadInfo.getStatus() +","+loadInfo.getFileExtensionName());
                 File file = null;
-                PoiConverter poiConverter = new PoiConverter(context);
+                if(loadInfo.getStatus() == LoadInfo.COMPLETED) {
+                    PoiConverter poiConverter = new PoiConverter(context);
 
-                if (loadInfo.getFileExtensionName().contains(".doc")) {
-                    file = poiConverter.docToHtmlFromSD(loadInfo.getSavePath());
-                } else if (loadInfo.getFileExtensionName().contains(".xls")) {
-                    file = poiConverter.xlsToHtmlFromSD(loadInfo.getSavePath());
-                } else if (loadInfo.getFileExtensionName().contains(".pdf")) {
-                    file = new File(loadInfo.getSavePath());
+                    if (loadInfo.getFileExtensionName().contains("doc")) {
+                        file = poiConverter.docToHtmlFromSD(loadInfo.getSavePath());
+                        return Observable.just(file);
+                    } else if (loadInfo.getFileExtensionName().contains("xls")) {
+                        file = poiConverter.xlsToHtmlFromSD(loadInfo.getSavePath());
+                        return Observable.just(file);
+                    } else if (loadInfo.getFileExtensionName().equals("pdf")) {
+                        file = new File(loadInfo.getSavePath());
+                        return Observable.just(file);
+                    }
                 }
                 return Observable.just(file);
             }
         });
     }
     public static void openFile(final Context context, final String name){
-        loadFile(context,name ).subscribe(new Consumer<File>() {
+        if(  instance == null){
+            instance =new RxLoad(context.getApplicationContext());
+        }
+        loadFile(context,name )
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<File>() {
             @Override
             public void accept(File file) throws Exception {
+                if(file == null){
+                    return;
+                }
                 if(file.getName().contains(".pdf")){
                   WebActivity.openPdf(context,file.getAbsolutePath());
                 }else {
@@ -559,6 +627,9 @@ public class RxLoad {
 
     }
     public static void openFileFromAssets(Context context,String name){
+        if(  instance == null){
+            instance =new RxLoad(context.getApplicationContext());
+        }
         String url = "";
         PoiConverter poiConverter = new PoiConverter(context);
         if(name.contains(".doc")){
@@ -571,16 +642,19 @@ public class RxLoad {
             WebActivity.start(context,url);
         }else if(name.contains(".pdf")){
             try {
-                final String strOutFileName = FileUtils.getRootDirectoryPath()+"/"+name;
+                final String strOutFileName = FileUtils.getFilePath(context)+"/"+name;
                 FileUtils.copyToSD(context,name,strOutFileName);
-                WebActivity.openPdf(context,url);
+                WebActivity.openPdf(context,strOutFileName);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
     }
-    private static void loadFileFromAssets(String name,final WebView webView) {
+    public static void loadFileFromAssets(String name,final WebView webView) {
+        if(  instance == null){
+            instance =new RxLoad(webView.getContext().getApplicationContext());
+        }
         String url = "";
         PoiConverter poiConverter = new PoiConverter(webView.getContext());
         if(name.contains(".doc")){
@@ -609,8 +683,10 @@ public class RxLoad {
         }
         webView.loadUrl(url);
     }
-    private static void loadFile(String url,final WebView webView) {
-
+    public static void loadFile(String url,final WebView webView) {
+        if(  instance == null){
+            instance =new RxLoad(webView.getContext().getApplicationContext());
+        }
         loadFile(webView.getContext(),url ).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<File>() {
@@ -672,7 +748,7 @@ public class RxLoad {
             }
         });
     }
-    private static void loadWeb(Context context,String url,boolean isPcClient) {
+    public static void loadWeb(Context context,String url,boolean isPcClient) {
         WebActivity.start(context, url,isPcClient);
     }
 

@@ -167,6 +167,7 @@ public class DownLoadBean {
 
     public LoadInfo toLoadInfo(){
         LoadInfo loadInfo = new LoadInfo();
+        loadInfo.setStatus(getStatus().getStatus());
         loadInfo.setDownloadSize(getStatus().getDownloadSize());
         loadInfo.setTotalSize(getStatus().getTotalSize());
         loadInfo.setLoadurl(getUrl());

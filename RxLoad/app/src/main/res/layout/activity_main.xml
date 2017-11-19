@@ -29,6 +29,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="打开xls" />
+        <Button
+            android:layout_margin="10dp"
+            android:id="@+id/btn_openpdf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="打开Pdf" />
 
         <Button
             android:layout_margin="10dp"

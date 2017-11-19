@@ -1,9 +1,11 @@
 package com.callanna.rxload.reader;
 
 import android.content.Context;
+
 import com.callanna.rxload.reader.exception.XyException;
 import com.callanna.rxload.reader.tool.FileUtils;
 import com.callanna.rxload.reader.tool.HtmlPicturesManager;
+
 import org.apache.poi.hssf.converter.ExcelToHtmlConverter;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.converter.WordToHtmlConverter;
@@ -21,6 +23,8 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
+import static com.callanna.rxload.Utils.log;
 
 /**
  * 使用POI作为转换器实现转换功能
@@ -42,9 +46,9 @@ public class PoiConverter  {
     public File docToHtmlFromSD(String sourceFileName ) {
         File sourceFile = null,targetFile = null;
         try {
-            File pic_dir_zip = new File(FileUtils.getSystemPath() + "/RxLoad", "Cache");
+            File pic_dir_zip = new File(FileUtils.getFilePath(context) , "Cache");
             if(!pic_dir_zip.exists()) {
-                pic_dir_zip.mkdir();
+                pic_dir_zip.mkdirs();
             }
             String  name = sourceFileName.substring(0,sourceFileName.indexOf("."));
               sourceFile = new File(pic_dir_zip, name +".doc");
@@ -61,9 +65,9 @@ public class PoiConverter  {
     public File docToHtmlFromAssets(String sourceFileName ) {
         File sourceFile = null,targetFile = null;
         try {
-            File pic_dir_zip = new File(FileUtils.getSystemPath() + "/RxLoad", "Cache");
+            File pic_dir_zip = new File(FileUtils.getFilePath(context) , "Cache");
             if(!pic_dir_zip.exists()) {
-                pic_dir_zip.mkdir();
+                pic_dir_zip.mkdirs();
             }
             String  name = sourceFileName.substring(0,sourceFileName.indexOf("."));
              sourceFile = new File(pic_dir_zip, name +".doc");
@@ -74,15 +78,16 @@ public class PoiConverter  {
             docToHtml(sourceFile.getPath(),targetFile.getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
+            log("docToHtmlFromAssets: error:"+e.getLocalizedMessage());
         }
         return targetFile;
     }
     public File xlsToHtmlFromAssets(String sourceFileName) {
         File sourceFile = null,targetFile = null;
         try {
-            File pic_dir_zip = new File(FileUtils.getSystemPath() + "/RxLoad", "Cache");
+            File pic_dir_zip = new File(FileUtils.getFilePath(context) , "Cache");
             if(!pic_dir_zip.exists()) {
-                pic_dir_zip.mkdir();
+                pic_dir_zip.mkdirs();
             }
             String  name = sourceFileName.substring(0,sourceFileName.indexOf("."));
               sourceFile = new File(pic_dir_zip, name +".xls");
@@ -93,15 +98,16 @@ public class PoiConverter  {
             xlsToHtml(sourceFile.getPath(),targetFile.getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
+            log("xlsToHtmlFromAssets: error:"+e.getLocalizedMessage());
         }
         return targetFile;
     }
     public File xlsToHtmlFromSD(String sourceFileName) {
         File sourceFile = null,targetFile = null;
         try {
-            File pic_dir_zip = new File(FileUtils.getSystemPath() + "/RxLoad", "Cache");
+            File pic_dir_zip = new File(FileUtils.getFilePath(context) , "Cache");
             if(!pic_dir_zip.exists()) {
-                pic_dir_zip.mkdir();
+                pic_dir_zip.mkdirs();
             }
             String  name = sourceFileName.substring(0,sourceFileName.indexOf("."));
             sourceFile = new File(pic_dir_zip, name +".xls");

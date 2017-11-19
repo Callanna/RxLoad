@@ -9,7 +9,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.callanna.rxload.RxLoad;
-import com.callanna.rxload.db.DownLoadBean;
+import com.callanna.rxload.data.LoadInfo;
 import com.callanna.rxload.db.DownLoadStatus;
 
 import java.util.ArrayList;
@@ -45,17 +45,17 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
         btn_progress.setOnClickListener(this);
         initData();
          
-        RxLoad.getInstance().getDownLoading().subscribe(new Observer<List<DownLoadBean>>() {
+        RxLoad.getInstance().getDownLoading().subscribe(new Observer<List<LoadInfo>>() {
             @Override
             public void onSubscribe(@NonNull Disposable d) {
 
             }
 
             @Override
-            public void onNext(@NonNull List<DownLoadBean> downLoadBeens) {
+            public void onNext(@NonNull List<LoadInfo> downLoadBeens) {
                 int waiting = 0,pause=0,starting = 0,comeplete = 0,fail = 0 ;
-                for (DownLoadBean bean:downLoadBeens ) {
-                    switch (bean.getStatus().getStatus()){
+                for (LoadInfo bean:downLoadBeens ) {
+                    switch (bean.getStatus()){
                         case DownLoadStatus.NORMAL:
                         case DownLoadStatus.PREPAREING:
                         case DownLoadStatus.WAITING:
@@ -132,9 +132,11 @@ public class MutiActivity extends AppCompatActivity implements View.OnClickListe
                 if(isStop){
                     isStop = false;
                     RxLoad.getInstance().startAll();
+                    btn_stop.setText("暂停");
                 }else {
                     isStop = true;
                     RxLoad.getInstance().pauseAll();
+                    btn_stop.setText("继续");
                 }
                 break;
             case R.id.btn_progress:

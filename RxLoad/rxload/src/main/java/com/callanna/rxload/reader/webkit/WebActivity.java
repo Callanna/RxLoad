@@ -50,7 +50,7 @@ import java.util.HashMap;
 public class WebActivity extends AppCompatActivity {
     public static final int REQUEST_CODE_DEFAULT = 10000;
     private static SparseArray<CharSequence> sUrlTitles;
-
+    private RelativeLayout wrapper;
     private WebView mWebView;
     private String mUrl;
     private boolean mCanSetTitle = true;
@@ -62,17 +62,20 @@ public class WebActivity extends AppCompatActivity {
     private String mPdfName;
     public static void start(Context context, String url ){
         Intent mIntent2 = new Intent(context, WebActivity.class);
+        mIntent2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
         mIntent2.putExtra("url", url);
         context.startActivity(mIntent2);
     }
     public static void start(Context context, String url,boolean isPC){
         Intent mIntent2 = new Intent(context, WebActivity.class);
+        mIntent2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
         mIntent2.putExtra("url", url);
         mIntent2.putExtra("isPC", isPC);
         context.startActivity(mIntent2);
     }
     public static void openPdf(Context context, String filename){
         Intent mIntent2 = new Intent(context, WebActivity.class);
+        mIntent2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
         mIntent2.putExtra("PdfName", filename);
         context.startActivity(mIntent2);
     }
@@ -82,19 +85,20 @@ public class WebActivity extends AppCompatActivity {
         boolean fullscreen = false;
         CharSequence queryTitle;
         String url = getIntent().getStringExtra("url");
-        Uri uri = Uri.parse(url);
-        if (uri != null) {
-            String param = uri.getQueryParameter("_fullscreen");
-            if (param != null) {
-                fullscreen = param.equals("1");
-            }
-            queryTitle = uri.getQueryParameter("_title");
-            if (queryTitle != null) {
-                super.setTitle(queryTitle);
-                mCanSetTitle = false;
+        if(!TextUtils.isEmpty(url)) {
+            Uri uri = Uri.parse(url);
+            if (uri != null) {
+                String param = uri.getQueryParameter("_fullscreen");
+                if (param != null) {
+                    fullscreen = param.equals("1");
+                }
+                queryTitle = uri.getQueryParameter("_title");
+                if (queryTitle != null) {
+                    super.setTitle(queryTitle);
+                    mCanSetTitle = false;
+                }
             }
         }
-
         // Init actionBar
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
@@ -111,7 +115,7 @@ public class WebActivity extends AppCompatActivity {
         mFullscreen = fullscreen;
 
         // Initialize content wrapper
-        RelativeLayout wrapper = new RelativeLayout(this);
+         wrapper = new RelativeLayout(this);
         wrapper.setGravity(Gravity.CENTER);
         setContentView(wrapper);
 
@@ -133,8 +137,10 @@ public class WebActivity extends AppCompatActivity {
                 super.setTitle(title);
             }
         }
-        mPdfName = getIntent().getStringExtra("mPdfName");
+        mPdfName = getIntent().getStringExtra("PdfName");
+
         if(!TextUtils.isEmpty(mPdfName)){
+            mWebView.loadUrl("file:///android_asset/pdfviewer/index.html");
             mWebView.getSettings().setJavaScriptEnabled(true);//让web可以运行js
             mWebView.setInitialScale(100);
             mWebView.addJavascriptInterface(new WebViewBridge(mWebView.getContext()), "pdfBridge");
@@ -155,7 +161,7 @@ public class WebActivity extends AppCompatActivity {
             mWebView.loadUrl(mUrl);
             mHasLoadWebView = true;
         }
-        mWebView.loadUrl("file:///android_asset/pdfviewer/index.html");
+
     }
 
     @Override
@@ -175,30 +181,34 @@ public class WebActivity extends AppCompatActivity {
     }
 
     private CharSequence getCacheTitle(String url) {
-        if (sUrlTitles == null) return null;
+        if (sUrlTitles == null || sUrlTitles.size() <= 0) return null;
         return sUrlTitles.get(url.hashCode());
     }
 
     // TODO: Simulate html window's onpageshow and onpagehide event
-//    @Override
-//    protected void onRestart() {
-//        super.onRestart();
-//        // Simulate window.onpageshow
-//        mWebView.loadJs("window.onpageshow();");
-//    }
-//
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//        // Simulate window.onpagehide
-//        mWebView.loadJs("window.onpagehide();");
-//    }
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        // Simulate window.onpageshow
+        mWebView.loadJs("window.onpageshow();");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Simulate window.onpagehide
+        mWebView.loadJs("window.onpagehide();");
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-//        String url = getIntent().getStringExtra("url");
-//        WebViewPool.getInstance().free(url);
+        wrapper.removeAllViews();
+        mWebView.stopLoading();
+        mWebView.removeAllViews();
+        mWebView.destroy();
+        mWebView = null;
+        wrapper = null;
     }
 
     @Override

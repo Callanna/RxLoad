@@ -13,8 +13,8 @@
     window.download = function(url){
         var elementById = document.getElementById('img');
         var load = document.getElementById('load');
-        load.style.left = (document.body.clientWidth - 100) / 2;//100为mydiv的宽度
-        load.style.height = (document.body.clientHeight- 100) / 2;
+        load.style.left = (document.body.clientWidth - 50) / 2;//100为mydiv的宽度
+        load.style.height = (document.body.clientHeight- 50) / 2;
         elementById.src = url;
         img.onerror = function () {
             pdfBridge.start();
@@ -37,7 +37,7 @@
                 var pageNumber = 1;
                 pdf.getPage(pageNumber).then(function(page) {
                     console.log('Page loaded');
-                    var scale = 1.5;
+                    var scale = 2;
                     var viewport = page.getViewport(scale);
                     // Prepare canvas using PDF page dimensions
                     var canvas = document.getElementById('the-canvas');

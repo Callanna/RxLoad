@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.Button;
 
 import com.callanna.rxload.RxLoad;
+import com.callanna.rxload.data.LoadInfo;
 import com.callanna.rxload.db.DownLoadStatus;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
@@ -94,9 +95,9 @@ public class DownLoadActivity extends AppCompatActivity {
                     }
                 }
             });
-            RxLoad.getInstance().getDownStatus(item.getUrl()).subscribe(new Consumer<DownLoadStatus>() {
+            RxLoad.getInstance().getLoadInfo(item.getUrl()).subscribe(new Consumer<LoadInfo>() {
                 @Override
-                public void accept(@NonNull DownLoadStatus downLoadStatus) throws Exception {
+                public void accept(@NonNull LoadInfo downLoadStatus) throws Exception {
                     helper.setText(R.id.tv_progress_status, downLoadStatus.getStringStatus())
                             .setText(R.id.tv_progress_size, downLoadStatus.getFormatStatusString())
                             .setProgress(R.id.progress, (int) downLoadStatus.getPercentNumber());

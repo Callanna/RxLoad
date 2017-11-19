@@ -2,23 +2,13 @@ apply plugin: 'com.android.library'
 apply from: 'bintray.gradle'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
-    dexOptions {
-        incremental = true;
-        preDexLibraries = false
-        javaMaxHeapSize "4g" // 2g should be also OK
-    }
+    compileSdkVersion 26
 
 
     //将LICENSE文件排除在外
     packagingOptions {
         exclude 'META-INF/NOTICE' // will not include NOTICE file
         exclude 'META-INF/LICENSE' // will not include LICENSE file
-        exclude 'META-INF/notice'
-        exclude 'META-INF/notice.txt'
-        exclude 'META-INF/license'
-        exclude 'META-INF/license.txt'
     }
     defaultConfig {
         minSdkVersion 14
@@ -26,26 +16,26 @@ android {
         multiDexEnabled true
         versionCode 1
         versionName "1.0"
-        ndk {
-            abiFilters "armeabi"
-        }
     }
-
+    sourceSets { main { assets.srcDirs = ['src/main/assets', 'src/main/assets/'] } }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    def dependencies = rootProject.ext.dependencies
-    compile dependencies.rxJava2
-    compile dependencies.rxAndroid2
-    provided dependencies.retrofit
-    provided dependencies.retrofitRxjavaAdapter
-    provided dependencies.retrofitGsonConverter
-    provided dependencies.okhttp3
-    provided dependencies.okhttpLoggingInterceptor
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:26.1.0'
 
-    provided 'com.android.support:appcompat-v7:25.3.1'
-    provided 'com.squareup.sqlbrite2:sqlbrite:2.0.0'
-    provided 'com.github.bumptech.glide:glide:3.7.0'
+    api 'io.reactivex.rxjava2:rxjava:2.1.5'
+    api 'io.reactivex.rxjava2:rxandroid:2.0.1'
+
+    implementation 'com.squareup.retrofit2:retrofit:2.2.0'
+    implementation 'com.squareup.retrofit2:adapter-rxjava2:2.2.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.2.0'
+
+    implementation 'com.squareup.okhttp3:okhttp:3.4.2'
+    implementation 'com.squareup.okhttp3:logging-interceptor:3.4.2'
+
+    implementation 'com.squareup.sqlbrite2:sqlbrite:2.0.0'
+
+    implementation 'com.github.bumptech.glide:glide:3.7.0'
 
 }

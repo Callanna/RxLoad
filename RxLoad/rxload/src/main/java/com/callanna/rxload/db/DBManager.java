@@ -18,13 +18,14 @@ import io.reactivex.schedulers.Schedulers;
 
 public class DBManager {
     private static final String QUERY_URL =
-            "SELECT *  FROM " + Db.DownLoadTable.TABLE_NAME + " WHERE " + Db.DownLoadTable.COLUMN_URL + " = ?";
+            "SELECT *  FROM " + Db.DownLoadTable.TABLE_NAME + " WHERE " + Db.DownLoadTable.COLUMN_URL + " = ?  ORDER BY  "+Db.DownLoadTable.COLUMN_ID+" ASC";
 
     private static final String QUERY_ALL =
-            "SELECT *  FROM " + Db.DownLoadTable.TABLE_NAME ;
+            "SELECT *  FROM " + Db.DownLoadTable.TABLE_NAME +" ORDER BY  "+Db.DownLoadTable.COLUMN_ID+" ASC";
 
     private static final String QUERY_STATUS =
-            "SELECT *  FROM " + Db.DownLoadTable.TABLE_NAME + " WHERE " + Db.DownLoadTable.COLUMN_DOWNLOAD_FLAG + " = ?";
+            "SELECT *  FROM " + Db.DownLoadTable.TABLE_NAME + " WHERE " + Db.DownLoadTable.COLUMN_DOWNLOAD_FLAG + " = ?  ORDER BY  "+Db.DownLoadTable.COLUMN_ID+" ASC";
+
 
     private volatile static DBManager singleton;
     private DBHelper mDbOpenHelper;

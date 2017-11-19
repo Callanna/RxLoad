@@ -129,7 +129,10 @@ public class FileUtils {
         }
         return path;
     }
-
+    public static String getFilePath(Context context){
+        String path = context.getFilesDir().getPath();
+        return path;
+    }
 
     /**
      * 创建一个文件夹

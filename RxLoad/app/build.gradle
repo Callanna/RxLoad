@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.1"
 
     defaultConfig {
         applicationId "com.ebanswers.rxdownload"
@@ -22,19 +21,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    packagingOptions {
-        exclude 'META-INF/DEPENDENCIES.txt'
-        exclude 'META-INF/LICENSE.txt'
-        exclude 'META-INF/NOTICE.txt'
-        exclude 'META-INF/NOTICE'
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/DEPENDENCIES'
-        exclude 'META-INF/notice.txt'
-        exclude 'META-INF/license.txt'
-        exclude 'META-INF/dependencies.txt'
-        exclude 'META-INF/LGPL2.a1'
-        exclude 'META-INF/rxjava.properties'
-    }
+
     repositories {//支持的远程仓库
         maven {
             url "https://jitpack.io"
@@ -43,11 +30,9 @@ android {
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile project(':rxload')
-    //    compile 'zlc.season:rxdownload2:2.0.4'
-    compile 'com.android.support:appcompat-v7:26.+'
-    compile 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.18'
-    compile 'com.android.support:recyclerview-v7:26.+'
-    compile 'com.android.support:multidex:1.0.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    api project(':rxload')
+    implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.18'
+    implementation 'com.android.support:recyclerview-v7:26.1.0'
 }
